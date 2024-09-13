@@ -161,6 +161,16 @@ void Keyboard(unsigned char Key, int x, int y)
 //   glutAttachMenu(GLUT_RIGHT_BUTTON);
 //   Keyboard(Empty, 0, 0);
 //}
+void DeleteGroup()
+{
+   PolygonGroups.pop_back();
+}
+
+void DeletePolygon()
+{
+   int group_num = PolygonGroups.size() - 1;
+   PolygonGroups[group_num].Polygons.pop_back();
+}
 
 void Menu(int pos)
 {
@@ -176,8 +186,8 @@ void Menu(int pos)
       case(KeyD): Keyboard('d', 0, 0); break;
       case(KeySpace): Keyboard(' ', 0, 0); break;
       case(KeyP): Keyboard('p', 0, 0); break;
-      case(KeyDeleteGroup): break;  //удаление группы
-      case(KeyDeletePolygon): break;   //удаление многоугольника
+      case(KeyDeleteGroup): DeleteGroup(); break;  //удаление группы
+      case(KeyDeletePolygon): DeletePolygon(); break;   //удаление многоугольника
       default:
          int menu_RGB = glutCreateMenu(Menu);   
          glutAddMenuEntry("R", KeyR);
