@@ -164,12 +164,16 @@ void Keyboard(unsigned char Key, int x, int y)
 void DeleteGroup()
 {
    PolygonGroups.pop_back();
+   if (PolygonGroups.empty())
+      PolygonGroups.push_back(PolygonGroup());
 }
 
 void DeletePolygon()
 {
    int group_num = PolygonGroups.size() - 1;
    PolygonGroups[group_num].Polygons.pop_back();
+   if (PolygonGroups[group_num].Polygons.empty())
+      PolygonGroups[group_num].Polygons.push_back(Polygon());
 }
 
 void Menu(int pos)
