@@ -7,6 +7,7 @@ GLubyte ColorR = 0, ColorG = 0, ColorB = 0;
 
 GLushort Width = 512, Height = 512;
 
+GLubyte LineWidth = 5;
 
 GLubyte PointSize = 5;
 
@@ -63,7 +64,8 @@ std::vector<PolygonGroup> PolygonGroups;
 
 void Render()     //отрисовка полигонов
 {
-   glEnableClientState(GL_VERTEX_ARRAY);
+  // glEnableClientState(GL_VERTEX_ARRAY);
+   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    for (int i = 0; i < PolygonGroups.size(); i++)
    {
       glColor3ub(PolygonGroups[i].R, PolygonGroups[i].G, PolygonGroups[i].B);
@@ -79,7 +81,27 @@ void Render()     //отрисовка полигонов
          glEnd();
       }
    }
-   glDisableClientState(GL_VERTEX_ARRAY);
+   glLineWidth(LineWidth);
+   int i = PolygonGroups.size() - 1;
+   int brightness = PolygonGroups[i].R + PolygonGroups[i].G + PolygonGroups[i].B;
+   if(brightness < 100)    
+      glColor3ub(100, 100, 100);          //если цвет темный - граница светло-серая
+   else
+      glColor3ub(0, 0, 0);                //если цвет - светлый - граница черная
+   //else
+   //   glColor3ub(255 - PolygonGroups[i].R, 255 - PolygonGroups[i].G, 255 - PolygonGroups[i].B); //иначе обводка инвертированного цвета
+   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+   for (int j = 0; j < PolygonGroups[i].Polygons.size(); j++)
+   {
+      glBegin(GL_POLYGON);
+      for (int k = 0; k < PolygonGroups[i].Polygons[j].Vertices.size(); k++)
+      {
+         glVertex2i(PolygonGroups[i].Polygons[j].Vertices[k].x, PolygonGroups[i].Polygons[j].Vertices[k].y);
+      }
+      glEnd();
+   }
+   //glDisable(GL_LINE);
+
 }
 
 /* Функция вывода на экран */
