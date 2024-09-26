@@ -16,7 +16,6 @@ enum keys      //клавиши
    Empty, KeyR, KeyG, KeyB, KeyW, KeyA, KeyS, KeyD, KeyDeletePolygon, KeyDeleteGroup, KeySpace, KeyP
 };
 
-
 /* Пустая функция отрисовки */
 struct Point      //точка
 {
@@ -24,9 +23,6 @@ struct Point      //точка
    GLushort y;
    Point() {}
    Point(GLushort x_, GLushort y_) : x(x_), y(y_) {}
-  // GLubyte R;
- //  GLubyte G;
-  // GLubyte B;
 };
    
 struct Polygon    //многоугольник
@@ -51,10 +47,12 @@ struct PolygonGroup  //группа полигонов
    {
       for (int i = 0; i < Polygons.size(); i++)
       {
-         for (int j = 0; j < Polygons[i].Vertices.size(); j++)
+         Polygon *CurPolygon = &Polygons[i];
+         for (int j = 0; j < CurPolygon->Vertices.size(); j++)
          {
-            Polygons[i].Vertices[j].x += x;
-            Polygons[i].Vertices[j].y += y;
+            Point *CurVertex = &CurPolygon->Vertices[j];
+            CurVertex->x += x;
+            CurVertex->y += y;
          }
       }
    }
@@ -64,44 +62,44 @@ std::vector<PolygonGroup> PolygonGroups;
 
 void Render()     //отрисовка полигонов
 {
-  // glEnableClientState(GL_VERTEX_ARRAY);
    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    for (int i = 0; i < PolygonGroups.size(); i++)
    {
-      glColor3ub(PolygonGroups[i].R, PolygonGroups[i].G, PolygonGroups[i].B);
-      for (int j = 0; j < PolygonGroups[i].Polygons.size(); j++)
+      PolygonGroup* CurPolygonGroup = &PolygonGroups[i];
+      glColor3ub(CurPolygonGroup->R, CurPolygonGroup->G, CurPolygonGroup->B);
+      for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
       {
+         Polygon* CurPolygon = &CurPolygonGroup->Polygons[j];
          glBegin(GL_POLYGON);
-            //glVertexPointer(2, GL_UNSIGNED_SHORT, sizeof(Point), &PolygonGroups[i].Polygons[j].Vertices[0].x);
-            //glDrawArrays(GL_POLYGON, 0, PolygonGroups[i].Polygons[j].Vertices.size());
-         for (int k = 0; k < PolygonGroups[i].Polygons[j].Vertices.size(); k++)
+         for (int k = 0; k < CurPolygon->Vertices.size(); k++)
          {
-            glVertex2i(PolygonGroups[i].Polygons[j].Vertices[k].x, PolygonGroups[i].Polygons[j].Vertices[k].y);
+            Point* curVertex = &CurPolygon->Vertices[k];
+            glVertex2i(curVertex->x, curVertex->y);
          }
          glEnd();
       }
    }
    glLineWidth(LineWidth);
-   int i = PolygonGroups.size() - 1;
-   int brightness = PolygonGroups[i].R + PolygonGroups[i].G + PolygonGroups[i].B;
+   int PolygonGroup_last = PolygonGroups.size() - 1;
+   PolygonGroup* CurPolygonGroup = &PolygonGroups[PolygonGroup_last];
+   int brightness = CurPolygonGroup->R + CurPolygonGroup->G + CurPolygonGroup->B;
    if(brightness < 100)    
       glColor3ub(100, 100, 100);          //если цвет темный - граница светло-серая
    else
       glColor3ub(0, 0, 0);                //если цвет - светлый - граница черная
-   //else
-   //   glColor3ub(255 - PolygonGroups[i].R, 255 - PolygonGroups[i].G, 255 - PolygonGroups[i].B); //иначе обводка инвертированного цвета
+
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-   for (int j = 0; j < PolygonGroups[i].Polygons.size(); j++)
+   for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
    {
+      Polygon* CurPolygon = &CurPolygonGroup->Polygons[j];
       glBegin(GL_POLYGON);
-      for (int k = 0; k < PolygonGroups[i].Polygons[j].Vertices.size(); k++)
+      for (int k = 0; k < CurPolygon->Vertices.size(); k++)
       {
-         glVertex2i(PolygonGroups[i].Polygons[j].Vertices[k].x, PolygonGroups[i].Polygons[j].Vertices[k].y);
+         Point* curVertex = &CurPolygon->Vertices[k];
+         glVertex2i(curVertex->x, curVertex->y);
       }
       glEnd();
    }
-   //glDisable(GL_LINE);
-
 }
 
 /* Функция вывода на экран */
@@ -131,9 +129,11 @@ void Mouse(int button, int state, int x, int y)
    if (button == GLUT_LEFT_BUTTON) //ЛКМ
    {
       int PolygonGroup_last = PolygonGroups.size() -1;
-      int Polygon_last = PolygonGroups[PolygonGroup_last].Polygons.size() - 1;
+      PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
+      int Polygon_last = curPolygonGroup->Polygons.size() - 1;
+      Polygon* curPolygon = &curPolygonGroup->Polygons[Polygon_last];
 
-      PolygonGroups[PolygonGroup_last].Polygons[Polygon_last].Vertices.push_back(Point(x,Height - y)); //добавление точки
+      curPolygon->Vertices.push_back(Point(x,Height - y)); //добавление точки
    }
 
    glutPostRedisplay();
@@ -141,49 +141,24 @@ void Mouse(int button, int state, int x, int y)
 
 void Keyboard(unsigned char Key, int x, int y)    
 {
-   int group_num = PolygonGroups.size() - 1; 
+   int PolygonGroup_last = PolygonGroups.size() - 1;
    //int group 
    switch (Key)
    {
-   case('r'): PolygonGroups[group_num].R += 5; break; 
-   case('g'): PolygonGroups[group_num].G += 5; break;
-   case('b'): PolygonGroups[group_num].B += 5; break;
+   case('r'): PolygonGroups[PolygonGroup_last].R += 5; break;
+   case('g'): PolygonGroups[PolygonGroup_last].G += 5; break;
+   case('b'): PolygonGroups[PolygonGroup_last].B += 5; break;
       /* Изменение XY-кординат точек */
-   case('w'): PolygonGroups[group_num].MoveAllVertices(0, 5); break;
-   case('a'): PolygonGroups[group_num].MoveAllVertices(-5, 0); break;
-   case('s'): PolygonGroups[group_num].MoveAllVertices(0, -5); break;
-   case('d'): PolygonGroups[group_num].MoveAllVertices(5, 0); break;
+   case('w'): PolygonGroups[PolygonGroup_last].MoveAllVertices(0, 5); break;
+   case('a'): PolygonGroups[PolygonGroup_last].MoveAllVertices(-5, 0); break;
+   case('s'): PolygonGroups[PolygonGroup_last].MoveAllVertices(0, -5); break;
+   case('d'): PolygonGroups[PolygonGroup_last].MoveAllVertices(5, 0); break;
    case(' '): PolygonGroups.push_back(PolygonGroup());         //создание новой группы
-   case('p'): PolygonGroups[group_num].Polygons.push_back(Polygon());      //создание нового многоугольника
+   case('p'): PolygonGroups[PolygonGroup_last].Polygons.push_back(Polygon());      //создание нового многоугольника
    }
    glutPostRedisplay();
 }
 
-//void CreateMenu()
-//{
-//   int menu_RGB = glutCreateMenu(Menu);
-//   glutAddMenuEntry("R", KeyR);
-//   glutAddMenuEntry("G", KeyG);
-//   glutAddMenuEntry("B", KeyB);
-//
-//   int menu_move = glutCreateMenu(Menu);
-//   glutAddMenuEntry("вверх", KeyW);
-//   glutAddMenuEntry("влево", KeyA);
-//   glutAddMenuEntry("вниз", KeyS);
-//   glutAddMenuEntry("вправо", KeyD);
-//
-//   int menu_delete = glutCreateMenu(Menu);
-//   glutAddMenuEntry("полигон", KeyDeletePolygon);
-//   glutAddMenuEntry("группа полигонов", KeyDeleteGroup);
-//
-//   int menu = glutCreateMenu(Menu);
-//   glutAddSubMenu("Смена цвета", menu_RGB);
-//   glutAddSubMenu("Перемещение", menu_move);
-//   glutAddSubMenu("Удаление", menu_move);
-//
-//   glutAttachMenu(GLUT_RIGHT_BUTTON);
-//   Keyboard(Empty, 0, 0);
-//}
 void DeleteGroup()
 {
    PolygonGroups.pop_back();
@@ -193,10 +168,10 @@ void DeleteGroup()
 
 void DeletePolygon()
 {
-   int group_num = PolygonGroups.size() - 1;
-   PolygonGroups[group_num].Polygons.pop_back();
-   if (PolygonGroups[group_num].Polygons.empty())
-      PolygonGroups[group_num].Polygons.push_back(Polygon());
+   int PolygonGroup_last = PolygonGroups.size() - 1;
+   PolygonGroups[PolygonGroup_last].Polygons.pop_back();
+   if (PolygonGroups[PolygonGroup_last].Polygons.empty())
+      PolygonGroups[PolygonGroup_last].Polygons.push_back(Polygon());
 }
 
 void Menu(int pos)
