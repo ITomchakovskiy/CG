@@ -13,7 +13,7 @@ GLubyte PointSize = 5;
 
 enum keys      //клавиши
 {
-   Empty, KeyR, KeyG, KeyB, KeyW, KeyA, KeyS, KeyD, KeyDeletePolygon, KeyDeleteGroup, KeySpace, KeyP
+   Empty, KeyR, KeyG, KeyB, KeyW, KeyA, KeyS, KeyD, KeyDeletePolygon, KeyDeleteGroup, KeySpace, KeyP, KeyDeleteVertex
 };
 
 /* Пустая функция отрисовки */
@@ -159,6 +159,16 @@ void Keyboard(unsigned char Key, int x, int y)
    glutPostRedisplay();
 }
 
+void DeleteVertex()
+{
+   int PolygonGroup_last = PolygonGroups.size() - 1;
+   PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
+   int Polygon_last = curPolygonGroup->Polygons.size() - 1;
+   Polygon* curPolygon = &curPolygonGroup->Polygons[Polygon_last];
+   if(!curPolygon->Vertices.empty())
+      curPolygon->Vertices.pop_back();
+}
+
 void DeleteGroup()
 {
    PolygonGroups.pop_back();
@@ -188,6 +198,7 @@ void Menu(int pos)
       case(KeyD): Keyboard('d', 0, 0); break;
       case(KeySpace): Keyboard(' ', 0, 0); break;
       case(KeyP): Keyboard('p', 0, 0); break;
+      case(KeyDeleteVertex): DeleteVertex(); break;
       case(KeyDeleteGroup): DeleteGroup(); break;  //удаление группы
       case(KeyDeletePolygon): DeletePolygon(); break;   //удаление многоугольника
       default:
@@ -203,13 +214,15 @@ void Menu(int pos)
          glutAddMenuEntry("вправо на 5 px", KeyD);
 
          int menu_delete = glutCreateMenu(Menu);
+         glutAddMenuEntry("последнюю вершину", KeyDeleteVertex);
          glutAddMenuEntry("последний полигон", KeyDeletePolygon);
          glutAddMenuEntry("последнюю группу полигонов", KeyDeleteGroup);
+         
 
          int menu = glutCreateMenu(Menu);
          glutAddSubMenu("Смена цвета", menu_RGB);
          glutAddSubMenu("Перемещение", menu_move);
-         glutAddSubMenu("Удаление", menu_delete);
+         glutAddSubMenu("Удалить", menu_delete);
 
          glutAttachMenu(GLUT_RIGHT_BUTTON);
          Keyboard(Empty, 0, 0);
