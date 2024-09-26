@@ -142,19 +142,20 @@ void Mouse(int button, int state, int x, int y)
 void Keyboard(unsigned char Key, int x, int y)    
 {
    int PolygonGroup_last = PolygonGroups.size() - 1;
+   PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
    //int group 
    switch (Key)
    {
-   case('r'): PolygonGroups[PolygonGroup_last].R += 5; break;
-   case('g'): PolygonGroups[PolygonGroup_last].G += 5; break;
-   case('b'): PolygonGroups[PolygonGroup_last].B += 5; break;
+   case('r'): curPolygonGroup->R += 5; break;
+   case('g'): curPolygonGroup->G += 5; break;
+   case('b'): curPolygonGroup->B += 5; break;
       /* Изменение XY-кординат точек */
-   case('w'): PolygonGroups[PolygonGroup_last].MoveAllVertices(0, 5); break;
-   case('a'): PolygonGroups[PolygonGroup_last].MoveAllVertices(-5, 0); break;
-   case('s'): PolygonGroups[PolygonGroup_last].MoveAllVertices(0, -5); break;
-   case('d'): PolygonGroups[PolygonGroup_last].MoveAllVertices(5, 0); break;
+   case('w'): curPolygonGroup->MoveAllVertices(0, 5); break;
+   case('a'): curPolygonGroup->MoveAllVertices(-5, 0); break;
+   case('s'): curPolygonGroup->MoveAllVertices(0, -5); break;
+   case('d'): curPolygonGroup->MoveAllVertices(5, 0); break;
    case(' '): PolygonGroups.push_back(PolygonGroup());         //создание новой группы
-   case('p'): PolygonGroups[PolygonGroup_last].Polygons.push_back(Polygon());      //создание нового многоугольника
+   case('p'): curPolygonGroup->Polygons.push_back(Polygon());      //создание нового многоугольника
    }
    glutPostRedisplay();
 }
@@ -179,9 +180,10 @@ void DeleteGroup()
 void DeletePolygon()
 {
    int PolygonGroup_last = PolygonGroups.size() - 1;
-   PolygonGroups[PolygonGroup_last].Polygons.pop_back();
-   if (PolygonGroups[PolygonGroup_last].Polygons.empty())
-      PolygonGroups[PolygonGroup_last].Polygons.push_back(Polygon());
+   PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
+   curPolygonGroup->Polygons.pop_back();
+   if (curPolygonGroup->Polygons.empty())
+      curPolygonGroup->Polygons.push_back(Polygon());
 }
 
 void Menu(int pos)
