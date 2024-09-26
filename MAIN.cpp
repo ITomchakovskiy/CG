@@ -192,19 +192,19 @@ void Menu(int pos)
       case(KeyDeletePolygon): DeletePolygon(); break;   //удаление многоугольника
       default:
          int menu_RGB = glutCreateMenu(Menu);   
-         glutAddMenuEntry("R", KeyR);
-         glutAddMenuEntry("G", KeyG);
-         glutAddMenuEntry("B", KeyB);
+         glutAddMenuEntry("компонента R++", KeyR);
+         glutAddMenuEntry("компонента G++", KeyG);
+         glutAddMenuEntry("компонента B++", KeyB);
 
          int menu_move = glutCreateMenu(Menu);
-         glutAddMenuEntry("вверх", KeyW);
-         glutAddMenuEntry("влево", KeyA);
-         glutAddMenuEntry("вниз", KeyS);
-         glutAddMenuEntry("вправо", KeyD);
+         glutAddMenuEntry("вверх на 5 px", KeyW);
+         glutAddMenuEntry("влево на 5 px", KeyA);
+         glutAddMenuEntry("вниз на 5 px", KeyS);
+         glutAddMenuEntry("вправо на 5 px", KeyD);
 
          int menu_delete = glutCreateMenu(Menu);
-         glutAddMenuEntry("полигон", KeyDeletePolygon);
-         glutAddMenuEntry("группа полигонов", KeyDeleteGroup);
+         glutAddMenuEntry("последний полигон", KeyDeletePolygon);
+         glutAddMenuEntry("последнюю группу полигонов", KeyDeleteGroup);
 
          int menu = glutCreateMenu(Menu);
          glutAddSubMenu("Смена цвета", menu_RGB);
