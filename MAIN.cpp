@@ -11,6 +11,10 @@ GLubyte LineWidth = 5;
 
 GLubyte PointSize = 5;
 
+GLushort X_Min = 0, Y_Min = 0;
+
+GLushort X_Max = 1920, Y_Max = 1080;
+
 enum keys      //клавиши
 {
    Empty, KeyR, KeyG, KeyB, KeyW, KeyA, KeyS, KeyD, KeyDeletePolygon, KeyDeleteGroup, KeySpace, KeyP, KeyDeleteVertex
@@ -37,15 +41,29 @@ struct PolygonGroup  //группа полигонов
    GLubyte R;
    GLubyte G;
    GLubyte B;
+   Point Min_border;
+   Point Max_border;
    PolygonGroup()
-      : R(ColorR), G(ColorG), B(ColorB)
+      : R(ColorR), G(ColorG), B(ColorB), Min_border(Point(X_Min,Y_Min)), Max_border(Point(X_Min, Y_Min))
    {
       Polygons.resize(1);
-      
    };
-   void MoveAllVertices(short x, short y) 
+   void MoveAllVertices(GLshort x, GLshort y)
    {
-      for (int i = 0; i < Polygons.size(); i++)
+      if (x < 0 && -x > Min_border.x)  //при слишком большом смещении корректируем его
+         x = X_Min - Min_border.x;
+      else if (x > 0 && Max_border.x > X_Max - x)
+         x = X_Max - Max_border.x;
+      if (y < 0 && -y > Min_border.y)
+         y = Y_Min - Min_border.y;
+      else if (y > 0 && Max_border.y > Y_Max - y)
+         y = Y_Max - Max_border.y;
+
+      Min_border.x += x;         //обновляем границы
+      Max_border.x += x;
+      Min_border.y += y;
+      Max_border.y += y;
+      for (int i = 0; i < Polygons.size(); i++)       //перемещаем точки
       {
          Polygon *CurPolygon = &Polygons[i];
          for (int j = 0; j < CurPolygon->Vertices.size(); j++)
@@ -55,6 +73,17 @@ struct PolygonGroup  //группа полигонов
             CurVertex->y += y;
          }
       }
+   }
+   void UpdateBorders(GLushort x, GLushort y)
+   {
+      if (x < Min_border.x)
+         Min_border.x = x;
+      else if(x > Min_border.x)
+         Max_border.x = x;
+      if (y < Min_border.y)
+         Min_border.y = y;
+      else if(y > Min_border.y)
+         Max_border.y = y;
    }
 };
 
@@ -133,13 +162,18 @@ void Mouse(int button, int state, int x, int y)
       int Polygon_last = curPolygonGroup->Polygons.size() - 1;
       Polygon* curPolygon = &curPolygonGroup->Polygons[Polygon_last];
 
-      curPolygon->Vertices.push_back(Point(x,Height - y)); //добавление точки
+      GLushort x_ = x;
+      GLushort y_ = Height - y;
+
+      curPolygonGroup->UpdateBorders(x_, y_);
+
+      curPolygon->Vertices.push_back(Point(x_,y_)); //добавление точки
    }
 
    glutPostRedisplay();
 }
 
-void Keyboard(unsigned char Key, int x, int y)    
+void Keyboard(unsigned char Key, int x, int y)
 {
    int PolygonGroup_last = PolygonGroups.size() - 1;
    PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
