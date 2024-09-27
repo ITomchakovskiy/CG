@@ -44,7 +44,7 @@ struct PolygonGroup  //группа полигонов
    Point Min_border;
    Point Max_border;
    PolygonGroup()
-      : R(ColorR), G(ColorG), B(ColorB), Min_border(Point(X_Min,Y_Min)), Max_border(Point(X_Min, Y_Min))
+      : R(ColorR), G(ColorG), B(ColorB), Min_border(Point((X_Max - X_Min)/2,(Y_Max - Y_Min)/2)), Max_border(Point((X_Max - X_Min) / 2, (Y_Max - Y_Min) / 2))
    {
       Polygons.resize(1);
    };
