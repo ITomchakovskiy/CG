@@ -15,9 +15,10 @@ GLushort X_Min = 0, Y_Min = 0;
 
 GLushort X_Max = 1920, Y_Max = 1080;
 
+
 enum keys      //клавиши
 {
-   Empty, KeyR, KeyG, KeyB, KeyW, KeyA, KeyS, KeyD, KeyDeletePolygon, KeyDeleteGroup, KeySpace, KeyP, KeyDeleteVertex
+   Empty, KeyR, KeyG, KeyB, KeyW, KeyA, KeyS, KeyD, KeyDeletePolygon, KeyDeleteGroup, KeySpace, KeyP, KeyDeleteVertex, KeySavePosition, KeyResetPosition
 };
 
 /* Пустая функция отрисовки */
@@ -28,6 +29,8 @@ struct Point      //точка
    Point() {}
    Point(GLushort x_, GLushort y_) : x(x_), y(y_) {}
 };
+
+Point delta_r(0, 0);
    
 struct Polygon    //многоугольник
 {
@@ -58,6 +61,9 @@ struct PolygonGroup  //группа полигонов
          y = Y_Min - Min_border.y;
       else if (y > 0 && Max_border.y > Y_Max - y)
          y = Y_Max - Max_border.y;
+
+      delta_r.x += x;
+      delta_r.y += y;
 
       Min_border.x += x;         //обновляем границы
       Max_border.x += x;
@@ -188,8 +194,8 @@ void Keyboard(unsigned char Key, int x, int y)
    case('a'): curPolygonGroup->MoveAllVertices(-5, 0); break;
    case('s'): curPolygonGroup->MoveAllVertices(0, -5); break;
    case('d'): curPolygonGroup->MoveAllVertices(5, 0); break;
-   case(' '): PolygonGroups.push_back(PolygonGroup());         //создание новой группы
-   case('p'): curPolygonGroup->Polygons.push_back(Polygon());      //создание нового многоугольника
+   case(' '): PolygonGroups.push_back(PolygonGroup()); break;         //создание новой группы
+   case('p'): curPolygonGroup->Polygons.push_back(Polygon()); break;      //создание нового многоугольника
    }
    glutPostRedisplay();
 }
@@ -220,6 +226,8 @@ void DeletePolygon()
       curPolygonGroup->Polygons.push_back(Polygon());
 }
 
+
+
 void Menu(int pos)
 {
    int key = (keys)pos;
@@ -235,8 +243,17 @@ void Menu(int pos)
       case(KeySpace): Keyboard(' ', 0, 0); break;
       case(KeyP): Keyboard('p', 0, 0); break;
       case(KeyDeleteVertex): DeleteVertex(); break;
-      case(KeyDeleteGroup): DeleteGroup(); break;  //удаление группы
-      case(KeyDeletePolygon): DeletePolygon(); break;   //удаление многоугольника
+      case(KeyDeleteGroup): DeleteGroup(); delta_r = Point(0, 0); break;  //удаление группы
+      case(KeyDeletePolygon): DeletePolygon(); delta_r = Point(0, 0); break;   //удаление многоугольника
+      case(KeySavePosition): delta_r = Point(0, 0); break;
+      case(KeyResetPosition):
+      {
+         int PolygonGroup_last = PolygonGroups.size() - 1;
+         PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
+         curPolygonGroup->MoveAllVertices(-delta_r.x, -delta_r.y);
+         delta_r = Point(0, 0);
+         break;
+      }
       default:
          int menu_RGB = glutCreateMenu(Menu);   
          glutAddMenuEntry("компонента R++", KeyR);
@@ -259,6 +276,9 @@ void Menu(int pos)
          glutAddSubMenu("Смена цвета", menu_RGB);
          glutAddSubMenu("Перемещение", menu_move);
          glutAddSubMenu("Удалить", menu_delete);
+
+         glutAddMenuEntry("Сохранить текущую позицию группы полигонов", KeySavePosition);
+         glutAddMenuEntry("Отменить перемещение группы полигонов", KeyResetPosition);
 
          glutAttachMenu(GLUT_RIGHT_BUTTON);
          Keyboard(Empty, 0, 0);
