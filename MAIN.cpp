@@ -1,306 +1,384 @@
+#include <iostream>
+#include <fstream>
 #include <vector>
+#include <math.h>
 
 #include "glut.h"
 
+#define M_PI 3.141592653589793
 
-GLubyte ColorR = 0, ColorG = 0, ColorB = 0;
+using std::fstream;
+using std::ios;
+using std::vector;
+/* Разрмер окна */
+int Width = 1000;
+int Height = 1000;
 
-GLushort Width = 512, Height = 512;
-
-GLubyte LineWidth = 5;
-
-GLubyte PointSize = 5;
-
-GLushort X_Min = 0, Y_Min = 0;
-
-GLushort X_Max = 1920, Y_Max = 1080;
-
-
-enum keys      //клавиши
+struct Point3DFloat
 {
-   Empty, KeyR, KeyG, KeyB, KeyW, KeyA, KeyS, KeyD, KeyDeletePolygon, KeyDeleteGroup, KeySpace, KeyP, KeyDeleteVertex, KeySavePosition, KeyResetPosition
-};
-
-/* Пустая функция отрисовки */
-struct Point      //точка
-{
-   GLushort x;
-   GLushort y;
-   Point() {}
-   Point(GLushort x_, GLushort y_) : x(x_), y(y_) {}
-};
-
-Point delta_r(0, 0);
-   
-struct Polygon    //многоугольник
-{
-   std::vector<Point> Vertices;
-   Polygon() {};
-};
-
-struct PolygonGroup  //группа полигонов
-{
-   std::vector<Polygon> Polygons;
-   GLubyte R;
-   GLubyte G;
-   GLubyte B;
-   Point Min_border;
-   Point Max_border;
-   PolygonGroup()
-      : R(ColorR), G(ColorG), B(ColorB), Min_border(Point((X_Max - X_Min)/2,(Y_Max - Y_Min)/2)), Max_border(Point((X_Max - X_Min) / 2, (Y_Max - Y_Min) / 2))
+   float x;
+   float y;
+   float z;
+   Point3DFloat(float x_, float y_, float z_) : x(x_), y(y_), z(z_) {};
+   Point3DFloat(float x_, float y_) : x(x_), y(y_), z(0.) {};
+   Point3DFloat() : x(0.), y(0.), z(0.) {};
+   Point3DFloat operator -(const Point3DFloat& other) const
    {
-      Polygons.resize(1);
-   };
-   void MoveAllVertices(GLshort x, GLshort y)
+      return Point3DFloat(x - other.x, y - other.y, z - other.z);
+   }
+   Point3DFloat operator +(const Point3DFloat& other) const
    {
-      if (x < 0 && -x > Min_border.x)  //при слишком большом смещении корректируем его
-         x = X_Min - Min_border.x;
-      else if (x > 0 && Max_border.x > X_Max - x)
-         x = X_Max - Max_border.x;
-      if (y < 0 && -y > Min_border.y)
-         y = Y_Min - Min_border.y;
-      else if (y > 0 && Max_border.y > Y_Max - y)
-         y = Y_Max - Max_border.y;
+      return Point3DFloat(x + other.x, y + other.y, z + other.z);
+   }
+   double operator *(const Point3DFloat& other) const
+   {
+      return x * other.x + y * other.y + z * other.z;
+   }
+   Point3DFloat Cross(const Point3DFloat& other)
+   {
+      return Point3DFloat(y * other.z - z * other.y,
+         z * other.x - x * other.z,
+         x * other.y - y * other.x);
+   }
+   double Norm()
+   {
+      return sqrt(x * x + y * y + z * z);
+   }
+   void Normalize()
+   {
+      double Norm = this->Norm();
+      x /= Norm;
+      y /= Norm;
+      z /= Norm;
+   }
+   Point3DFloat ApplyChangesToPoint(float* Matrix_)
+   {
+      float coef = Matrix_[3] * x + Matrix_[7] * y + Matrix_[11] * z + Matrix_[15];
+      return Point3DFloat(((Matrix_[0] * x + Matrix_[4] * y + Matrix_[8] * z + Matrix_[12]) / coef),
+         ((Matrix_[1] * x + Matrix_[5] * y + Matrix_[9] * z + Matrix_[13]) / coef),
+         ((Matrix_[2] * x + Matrix_[6] * y + Matrix_[10] * z + Matrix_[14]) / coef));
+   }
+   Point3DFloat ApplyChangesToVector(float* Matrix_)
+   {
+      //float coef = Matrix_[3] * x + Matrix_[7] * y + Matrix_[11] * z;
+      Point3DFloat result(((Matrix_[0] * x + Matrix_[4] * y + Matrix_[8] * z)),
+         ((Matrix_[1] * x + Matrix_[5] * y + Matrix_[9] * z)),
+         ((Matrix_[2] * x + Matrix_[6] * y + Matrix_[10] * z)));
+      result.Normalize();
+      return result;
+     /* return Point3DFloat(((Matrix_[0] * x + Matrix_[4] * y + Matrix_[8] * z)),
+         ((Matrix_[1] * x + Matrix_[5] * y + Matrix_[9] * z)),
+         ((Matrix_[2] * x + Matrix_[6] * y + Matrix_[10] * z)));*/
+   }
+   float GetAngle(Point3DFloat& other)
+   {
+      double cos = (other.x*x + other.y*y + other.z*z) / (other.Norm() * this->Norm()) ; //считаем угол для поворота
+      double angle_rad = acosf(cos);
+      float angle_grad = angle_rad * 180. / M_PI;
+      return angle_grad;
+   }
+};
 
-      delta_r.x += x;
-      delta_r.y += y;
+Point3DFloat SectionVertices[5];
 
-      Min_border.x += x;         //обновляем границы
-      Max_border.x += x;
-      Min_border.y += y;
-      Max_border.y += y;
-      for (int i = 0; i < Polygons.size(); i++)       //перемещаем точки
+Point3DFloat SectionNormals[5];
+
+vector<Point3DFloat> ReplicationPath;
+
+void SectionNormalsInit()
+{
+   Point3DFloat VecZ = Point3DFloat(0., 0., 1.);
+   for (int i = 0; i < 4; i++)
+   {
+      Point3DFloat VecSide = SectionVertices[i + 1] - SectionVertices[i];
+      SectionNormals[i] = VecZ.Cross(VecSide);
+   }
+   Point3DFloat VecSide = SectionVertices[0] - SectionVertices[4];
+   SectionNormals[4] = VecZ.Cross(VecSide);
+}
+
+struct Point3DFloatSet
+{
+   Point3DFloat Points[5];
+   Point3DFloatSet() {};
+   Point3DFloatSet(Point3DFloat *points)
+   {
+      *this = points;
+   }
+   void ApplyChangesToPointsSet(float* Matrix_)
+   {
+      for (int i = 0; i < 5; i++)
       {
-         Polygon *CurPolygon = &Polygons[i];
-         for (int j = 0; j < CurPolygon->Vertices.size(); j++)
-         {
-            Point *CurVertex = &CurPolygon->Vertices[j];
-            CurVertex->x += x;
-            CurVertex->y += y;
-         }
+         Point3DFloat Point = SectionVertices[i];
+         float coef = Matrix_[3] * Point.x + Matrix_[7] * Point.y + Matrix_[11] * Point.z + Matrix_[15];
+         /*Points[i] = Point3DFloat(((Matrix_[0] * Point.x + Matrix_[4] * Point.y + Matrix_[8] * Point.z + Matrix_[12]) / coef),
+                                   ((Matrix_[1] * Point.x + Matrix_[5] * Point.y + Matrix_[9] * Point.z + Matrix_[13]) / coef),
+                                   ((Matrix_[2] * Point.x + Matrix_[6] * Point.y + Matrix_[10] * Point.z + Matrix_[14]) / coef));*/
+         Points[i] = Point.ApplyChangesToPoint(Matrix_);
       }
    }
-   void UpdateBorders(GLushort x, GLushort y)
+   void ApplyChangesToVectorsSet(float* Matrix_)
    {
-      if (x < Min_border.x)
-         Min_border.x = x;
-      else if(x > Min_border.x)
-         Max_border.x = x;
-      if (y < Min_border.y)
-         Min_border.y = y;
-      else if(y > Min_border.y)
-         Max_border.y = y;
+      for (int i = 0; i < 5; i++)
+      {
+         Point3DFloat Vector = SectionNormals[i];
+         //float coef = Matrix_[3] * Vector.x + Matrix_[7] * Vector.y + Matrix_[11] * Vector.z;
+         /*Points[i] = Point3DFloat(((Matrix_[0] * Vector.x + Matrix_[4] * Vector.y + Matrix_[8] * Vector.z)),
+                                  ((Matrix_[1] * Vector.x + Matrix_[5] * Vector.y + Matrix_[9] * Vector.z)),
+                                  ((Matrix_[2] * Vector.x + Matrix_[6] * Vector.y + Matrix_[10] * Vector.z)));*/
+         Points[i] = Vector.ApplyChangesToVector(Matrix_);
+      }
    }
 };
 
-std::vector<PolygonGroup> PolygonGroups;
+vector<Point3DFloatSet> Points;
 
-void Render()     //отрисовка полигонов
+vector<Point3DFloatSet> Normals;
+
+Point3DFloat BorderNormals[2];
+
+void ReadSection()
 {
-   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-   for (int i = 0; i < PolygonGroups.size(); i++)
+   fstream fin;
+   fin.open("Section.txt", ios::in);
+   for (int i = 0; i < 5; i++)
    {
-      PolygonGroup* CurPolygonGroup = &PolygonGroups[i];
-      glColor3ub(CurPolygonGroup->R, CurPolygonGroup->G, CurPolygonGroup->B);
-      for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
+      fin >> SectionVertices[i].x;
+      fin >> SectionVertices[i].y;
+   }
+   fin.close();
+}
+
+void ReadReplicationPath()
+{
+   fstream fin;
+   fin.open("ReplicationPath.txt", ios::in);
+   int n;
+   fin >> n;
+   ReplicationPath.resize(n);
+   for (int i = 0; i < n; i++)
+   {
+      fin >> ReplicationPath[i].x;
+      fin >> ReplicationPath[i].y;
+      fin >> ReplicationPath[i].z;
+   }
+}
+
+float Matrix[16];
+
+void FirstSection()
+{
+   //glPushMatrix(); //загрузка матрицы в стек
+   glMatrixMode(GL_MODELVIEW);
+   glLoadIdentity();
+   glTranslatef(ReplicationPath[0].x, ReplicationPath[0].y, ReplicationPath[0].z); //перемещение в начало тиражирования
+   Point3DFloat ReplicationDirection = ReplicationPath[1] - ReplicationPath[0];  //направление тиражирования
+   Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль
+   float angle = ReplicationDirection.GetAngle(SectionNormal);
+   Point3DFloat RotateDirection = SectionNormal.Cross(ReplicationDirection); //вектор,вокруг которого будем совершать поворот
+   if (RotateDirection.x > 1.0E-5 || RotateDirection.y > 1.0E-5 || RotateDirection.z > 1.0E-5)
+   {
+      RotateDirection.Normalize();
+      glRotatef(angle, RotateDirection.x, RotateDirection.y, RotateDirection.z);  //поворот, ось z по направлению тиражирования
+   }
+   glGetFloatv(GL_MODELVIEW_MATRIX, Matrix); //получаем матрицу преобразований
+   Point3DFloatSet NewSectionPoints;
+   NewSectionPoints.ApplyChangesToPointsSet(Matrix);
+   Points[0] = NewSectionPoints;
+   //Points.push_back(NewSectionPoints);
+   Point3DFloatSet NewSectionNormals;
+   NewSectionNormals.ApplyChangesToVectorsSet(Matrix);
+   Normals[0] = NewSectionNormals;
+   //Normals.push_back(NewSectionNormals);
+   BorderNormals[0] = SectionNormal.ApplyChangesToVector(Matrix);
+   //glPopMatrix();
+    glLoadIdentity();
+}
+
+void LastSection()
+{
+   //glPushMatrix(); //загрузка матрицы в стек
+   glTranslatef(ReplicationPath[ReplicationPath.size()-1].x, ReplicationPath[ReplicationPath.size() - 1].y, ReplicationPath[ReplicationPath.size() - 1].z); //перемещение в начало тиражирования
+   Point3DFloat ReplicationDirection = ReplicationPath[ReplicationPath.size() - 1] - ReplicationPath[ReplicationPath.size() - 2];  //направление тиражирования
+   Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль
+   float angle = ReplicationDirection.GetAngle(SectionNormal);
+   Point3DFloat RotateDirection = SectionNormal.Cross(ReplicationDirection); //вектор,вокруг которого будем совершать поворот
+   if (RotateDirection.x > 1.0E-5 || RotateDirection.y > 1.0E-5 || RotateDirection.z > 1.0E-5)
+   {
+      RotateDirection.Normalize();
+      glRotatef(angle, RotateDirection.x, RotateDirection.y, RotateDirection.z);  //поворот, ось z по направлению тиражирования
+   }
+   glGetFloatv(GL_MODELVIEW_MATRIX, Matrix); //получаем матрицу преобразований
+   Point3DFloatSet NewSectionPoints;
+   NewSectionPoints.ApplyChangesToPointsSet(Matrix);
+   Points[Points.size() - 1] = NewSectionPoints;
+   //Points.push_back(NewSectionPoints);
+   /*Point3DFloatSet NewSectionNormals;
+   NewSectionNormals.ApplyChangesToVectorsSet(Matrix);
+   Normals.push_back(NewSectionNormals);*/
+   SectionNormal.z = -SectionNormal.z;
+   BorderNormals[1] = SectionNormal.ApplyChangesToVector(Matrix);
+   //glPopMatrix();
+   glLoadIdentity();
+}
+
+void Sections()
+{
+   for (int i = 1; i < ReplicationPath.size()-1; i++)
+   {
+      //glPushMatrix(); //загрузка матрицы в стек
+      Point3DFloat PreviousReplicationDirection = ReplicationPath[i] - ReplicationPath[i - 1];  //направление тиражирования до узла
+      Point3DFloat NextReplicationDirection = ReplicationPath[i + 1] - ReplicationPath[i];  //направление тиражирования после узла
+      Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль
+      glTranslatef(ReplicationPath[i].x, ReplicationPath[i].y, ReplicationPath[i].z); //перемещение в узел
+      glPushMatrix();                                 
+      //для сечения
+      Point3DFloat AddingDirection = NextReplicationDirection - PreviousReplicationDirection;
+      AddingDirection.x /= 2.;
+      AddingDirection.y /= 2.;
+      AddingDirection.z /= 2.;
+      Point3DFloat ReplicationDirection = PreviousReplicationDirection + AddingDirection;
+      float angle = ReplicationDirection.GetAngle(SectionNormal);
+      Point3DFloat RotateDirection = SectionNormal.Cross(ReplicationDirection); //вектор,вокруг которого будем совершать поворот
+      if (RotateDirection.x > 1.0E-5 || RotateDirection.y > 1.0E-5 || RotateDirection.z > 1.0E-5)
       {
-         Polygon* CurPolygon = &CurPolygonGroup->Polygons[j];
-         glBegin(GL_POLYGON);
-         for (int k = 0; k < CurPolygon->Vertices.size(); k++)
+         RotateDirection.Normalize();
+         glRotatef(angle, RotateDirection.x, RotateDirection.y, RotateDirection.z);  //поворот, ось z по направлению тиражирования
+      }
+      glGetFloatv(GL_MODELVIEW_MATRIX, Matrix); //получаем матрицу преобразований
+      Point3DFloatSet NewSectionPoints;
+      NewSectionPoints.ApplyChangesToPointsSet(Matrix);
+      Points[i] = NewSectionPoints;
+      //Points.push_back(NewSectionPoints);
+      /*Point3DFloatSet NewSectionNormals;
+      NewSectionNormals.ApplyChangesToVectorsSet(Matrix);
+      Normals.push_back(NewSectionNormals);*/
+      glPopMatrix();
+      //для нормалей
+      ReplicationDirection = NextReplicationDirection;
+      angle = ReplicationDirection.GetAngle(SectionNormal);
+      RotateDirection = SectionNormal.Cross(ReplicationDirection); //вектор,вокруг которого будем совершать поворот
+      if (RotateDirection.x > 1.0E-5 || RotateDirection.y > 1.0E-5 || RotateDirection.z > 1.0E-5)
+      {
+         RotateDirection.Normalize();
+         glRotatef(angle, RotateDirection.x, RotateDirection.y, RotateDirection.z);  //поворот, ось z по направлению тиражирования
+      }
+      glGetFloatv(GL_MODELVIEW_MATRIX, Matrix); //получаем матрицу преобразований
+      Point3DFloatSet NewSectionNormals;
+      NewSectionNormals.ApplyChangesToVectorsSet(Matrix);
+      Normals[i] = NewSectionNormals;
+      //Normals.push_back(NewSectionNormals);
+      glLoadIdentity();
+   }
+}
+
+void DisplaySections()
+{
+   glColor3f(1., 0., 0.);
+   Point3DFloat Normal = BorderNormals[0];
+   glNormal3f(Normal.x, Normal.y, Normal.z);
+   glBegin(GL_POLYGON);
+   for (int i = 0; i < 5; i++)
+   {
+      Point3DFloat Vertex = Points[0].Points[i];
+      glVertex3f(Vertex.x, Vertex.y, Vertex.z);
+   }
+   glEnd();
+   glNormal3f(0, 0, 1.);
+
+   Normal = BorderNormals[1];
+   glNormal3f(Normal.x, Normal.y, Normal.z);
+   glBegin(GL_POLYGON);
+   for (int i = 0; i < 5; i++)
+   {
+      Point3DFloat Vertex = Points[Points.size()-1].Points[i];
+      glVertex3f(Vertex.x, Vertex.y, Vertex.z);
+   }
+   glEnd();
+}
+
+void DisplayQuads()
+{
+   glColor3f(.5, .5, .5);
+   for (int i = 0; i < Points.size() - 1; i++)
+   {
+      Point3DFloatSet PreviousSection = Points[i];
+      Point3DFloatSet NextSection = Points[i+1];
+
+      for (int j = 0; j < 4; j++)
+      {
+         Point3DFloat Normal = Normals[i].Points[j];
+         Point3DFloat Vertices[4] = { PreviousSection.Points[j], PreviousSection.Points[j + 1], NextSection.Points[j + 1], NextSection.Points[j] };
+
+         glNormal3f(Normal.x, Normal.y, Normal.z);
+
+         glBegin(GL_QUADS);
+         for (int p = 0; p < 4; p++)
          {
-            Point* curVertex = &CurPolygon->Vertices[k];
-            glVertex2i(curVertex->x, curVertex->y);
+            glVertex3f(Vertices[p].x, Vertices[p].y, Vertices[p].z);
          }
          glEnd();
       }
-   }
-   glLineWidth(LineWidth);
-   int PolygonGroup_last = PolygonGroups.size() - 1;
-   PolygonGroup* CurPolygonGroup = &PolygonGroups[PolygonGroup_last];
-   int brightness = CurPolygonGroup->R + CurPolygonGroup->G + CurPolygonGroup->B;
-   if(brightness < 100)    
-      glColor3ub(100, 100, 100);          //если цвет темный - граница светло-серая
-   else
-      glColor3ub(0, 0, 0);                //если цвет - светлый - граница черная
+      Point3DFloat Normal = Normals[i].Points[4];
+      Point3DFloat Vertices[4] = { PreviousSection.Points[4], PreviousSection.Points[0], NextSection.Points[0], NextSection.Points[4] };
 
-   glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-   for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
-   {
-      Polygon* CurPolygon = &CurPolygonGroup->Polygons[j];
-      glBegin(GL_POLYGON);
-      for (int k = 0; k < CurPolygon->Vertices.size(); k++)
+      glNormal3f(Normal.x, Normal.y, Normal.z);
+
+      glBegin(GL_QUADS);
+      for (int p = 0; p < 4; p++)
       {
-         Point* curVertex = &CurPolygon->Vertices[k];
-         glVertex2i(curVertex->x, curVertex->y);
+         glVertex3f(Vertices[p].x, Vertices[p].y, Vertices[p].z);
       }
       glEnd();
    }
+   
 }
 
-/* Функция вывода на экран */
-void Display(void) 
+void Display(void)
 {
    glClearColor(1, 1, 1, 1);
-   glClear(GL_COLOR_BUFFER_BIT);
-   Render();
+   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+   //glColor3ub(20,100);
+   
+   FirstSection();
+   Sections();
+   LastSection();
+   glRotatef(90, 1, 1, 1); // поворот
+   DisplaySections();
+   DisplayQuads();
    glFinish();
 }
-/* Функция изменения размеров окна */
-void Reshape(GLint w, GLint h) 
+
+float light0_positionT[] = { 500, 500, 500, 1 };
+
+void Reshape(GLint w, GLint h)
 {
-   Width = w, Height = h;
+   Width = w; Height = h;
    glViewport(0, 0, w, h);
    glMatrixMode(GL_PROJECTION);
    glLoadIdentity();
-   gluOrtho2D(0, w, 0, h);
+   glOrtho(-w / 2, w / 2, -h / 2, h / 2, -1000, 1000);
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
 }
 
-void Mouse(int button, int state, int x, int y) 
-{
-   if (state != GLUT_DOWN) return; //зажатие ЛКМ
-
-   if (button == GLUT_LEFT_BUTTON) //ЛКМ
-   {
-      int PolygonGroup_last = PolygonGroups.size() -1;
-      PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
-      int Polygon_last = curPolygonGroup->Polygons.size() - 1;
-      Polygon* curPolygon = &curPolygonGroup->Polygons[Polygon_last];
-
-      GLushort x_ = x;
-      GLushort y_ = Height - y;
-
-      curPolygonGroup->UpdateBorders(x_, y_);
-
-      curPolygon->Vertices.push_back(Point(x_,y_)); //добавление точки
-   }
-
-   glutPostRedisplay();
-}
-
-void Keyboard(unsigned char Key, int x, int y)
-{
-   int PolygonGroup_last = PolygonGroups.size() - 1;
-   PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
-   //int group 
-   switch (Key)
-   {
-   case('r'): curPolygonGroup->R += 5; break;
-   case('g'): curPolygonGroup->G += 5; break;
-   case('b'): curPolygonGroup->B += 5; break;
-      /* Изменение XY-кординат точек */
-   case('w'): curPolygonGroup->MoveAllVertices(0, 5); break;
-   case('a'): curPolygonGroup->MoveAllVertices(-5, 0); break;
-   case('s'): curPolygonGroup->MoveAllVertices(0, -5); break;
-   case('d'): curPolygonGroup->MoveAllVertices(5, 0); break;
-   case(' '): PolygonGroups.push_back(PolygonGroup()); break;         //создание новой группы
-   case('p'): curPolygonGroup->Polygons.push_back(Polygon()); break;      //создание нового многоугольника
-   }
-   glutPostRedisplay();
-}
-
-void DeleteVertex()
-{
-   int PolygonGroup_last = PolygonGroups.size() - 1;
-   PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
-   int Polygon_last = curPolygonGroup->Polygons.size() - 1;
-   Polygon* curPolygon = &curPolygonGroup->Polygons[Polygon_last];
-   if(!curPolygon->Vertices.empty())
-      curPolygon->Vertices.pop_back();
-}
-
-void DeleteGroup()
-{
-   PolygonGroups.pop_back();
-   if (PolygonGroups.empty())
-      PolygonGroups.push_back(PolygonGroup());
-}
-
-void DeletePolygon()
-{
-   int PolygonGroup_last = PolygonGroups.size() - 1;
-   PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
-   curPolygonGroup->Polygons.pop_back();
-   if (curPolygonGroup->Polygons.empty())
-      curPolygonGroup->Polygons.push_back(Polygon());
-}
-
-
-
-void Menu(int pos)
-{
-   int key = (keys)pos;
-   switch (key)
-   {
-      case(KeyR): Keyboard('r', 0, 0); break;
-      case(KeyG): Keyboard('g', 0, 0); break;
-      case(KeyB): Keyboard('b', 0, 0); break;
-      case(KeyW): Keyboard('w', 0, 0); break;
-      case(KeyA): Keyboard('a', 0, 0); break;
-      case(KeyS): Keyboard('s', 0, 0); break;
-      case(KeyD): Keyboard('d', 0, 0); break;
-      case(KeySpace): Keyboard(' ', 0, 0); break;
-      case(KeyP): Keyboard('p', 0, 0); break;
-      case(KeyDeleteVertex): DeleteVertex(); break;
-      case(KeyDeleteGroup): DeleteGroup(); delta_r = Point(0, 0); break;  //удаление группы
-      case(KeyDeletePolygon): DeletePolygon(); delta_r = Point(0, 0); break;   //удаление многоугольника
-      case(KeySavePosition): delta_r = Point(0, 0); break;
-      case(KeyResetPosition):
-      {
-         int PolygonGroup_last = PolygonGroups.size() - 1;
-         PolygonGroup* curPolygonGroup = &PolygonGroups[PolygonGroup_last];
-         curPolygonGroup->MoveAllVertices(-delta_r.x, -delta_r.y);
-         delta_r = Point(0, 0);
-         break;
-      }
-      default:
-         int menu_RGB = glutCreateMenu(Menu);   
-         glutAddMenuEntry("компонента R++", KeyR);
-         glutAddMenuEntry("компонента G++", KeyG);
-         glutAddMenuEntry("компонента B++", KeyB);
-
-         int menu_move = glutCreateMenu(Menu);
-         glutAddMenuEntry("вверх на 5 px", KeyW);
-         glutAddMenuEntry("влево на 5 px", KeyA);
-         glutAddMenuEntry("вниз на 5 px", KeyS);
-         glutAddMenuEntry("вправо на 5 px", KeyD);
-
-         int menu_delete = glutCreateMenu(Menu);
-         glutAddMenuEntry("последнюю вершину", KeyDeleteVertex);
-         glutAddMenuEntry("последний полигон", KeyDeletePolygon);
-         glutAddMenuEntry("последнюю группу полигонов", KeyDeleteGroup);
-         
-
-         int menu = glutCreateMenu(Menu);
-         glutAddSubMenu("Смена цвета", menu_RGB);
-         glutAddSubMenu("Перемещение", menu_move);
-         glutAddSubMenu("Удалить", menu_delete);
-
-         glutAddMenuEntry("Сохранить текущую позицию группы полигонов", KeySavePosition);
-         glutAddMenuEntry("Отменить перемещение группы полигонов", KeyResetPosition);
-
-         glutAttachMenu(GLUT_RIGHT_BUTTON);
-         Keyboard(Empty, 0, 0);
-   }
-   glutPostRedisplay();
-}
-
-/* Головная программа */
 void main(int argc, char* argv[])
 {
+   ReadSection();
+   ReadReplicationPath();
+   SectionNormalsInit();
+   Points.resize(ReplicationPath.size());
+   Normals.resize(Points.size() - 1);
    glutInit(&argc, argv);
-   glutInitDisplayMode(GLUT_RGB);
+   glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH);
    glutInitWindowSize(Width, Height);
-   glutCreateWindow("Простейшее приложение");
-
-   PolygonGroups.resize(1);
-
-   Menu(Empty);
+   glutCreateWindow("Проекции");
    glutDisplayFunc(Display);
    glutReshapeFunc(Reshape);
-   glutKeyboardFunc(Keyboard);
-   glutMouseFunc(Mouse);
-
+   glEnable(GL_DEPTH_TEST);
+   glEnable(GL_LIGHTING);
+   glEnable(GL_LIGHT0);
+   glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+   glLightfv(GL_LIGHT0, GL_POSITION, light0_positionT);
    glutMainLoop();
 }
