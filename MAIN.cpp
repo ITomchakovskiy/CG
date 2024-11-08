@@ -13,6 +13,8 @@ using std::vector;
 /* Разрмер окна */
 int Width = 1000;
 int Height = 1000;
+int MaxCoord = 1000;
+float GridStep = 100.;
 
 struct Point3DFloat
 {
@@ -272,9 +274,80 @@ void Sections()
    }
 }
 
+void DisplayGrid()
+{
+   glLineWidth(10);
+
+   glColor3ub(255, 0, 0);
+   glBegin(GL_LINES);
+
+   glVertex2f(-MaxCoord, 0.);
+   glVertex2f(MaxCoord, 0.);
+
+   glVertex2f(-MaxCoord, -MaxCoord);
+   glVertex2f(MaxCoord, -MaxCoord);
+
+   glVertex2f(-MaxCoord, MaxCoord);
+   glVertex2f(MaxCoord, MaxCoord);
+
+   glColor3ub(0, 0, 255);
+   glVertex2f(0., -MaxCoord);
+   glVertex2f(0., MaxCoord);
+
+   glVertex2f(-MaxCoord, -MaxCoord);
+   glVertex2f(-MaxCoord, MaxCoord);
+
+   glVertex2f(MaxCoord, -MaxCoord);
+   glVertex2f(MaxCoord, MaxCoord);
+
+   glEnd();
+
+   glLineWidth(3);
+
+   
+
+   glLineStipple(1, 255);
+   glEnable(GL_LINE_STIPPLE);
+
+   glBegin(GL_LINES);
+
+   glColor3ub(255, 0, 0);
+
+   for (int i = 1; i < MaxCoord / GridStep; i++)
+   {
+      glVertex2f(-MaxCoord, i* GridStep);
+      glVertex2f(MaxCoord, i * GridStep);
+
+      glVertex2f(-MaxCoord, -i * GridStep);
+      glVertex2f(MaxCoord, -i * GridStep);
+   }
+
+   glColor3ub(0, 0, 255);
+
+   for (int i = 1; i < MaxCoord / GridStep; i++)
+   {
+      glVertex2f(i * GridStep, -MaxCoord);
+      glVertex2f(i * GridStep, MaxCoord);
+
+      glVertex2f(-i * GridStep, -MaxCoord);
+      glVertex2f(-i * GridStep, MaxCoord);
+   }
+
+   glEnd();
+
+   glDisable(GL_LINE_STIPPLE);
+   //glVertex2f(-MaxCoord, 0.);
+   //glVertex2f(MaxCoord, 0.);
+
+   //glColor3ub(0, 0, 255);
+   //glVertex2f(0., -MaxCoord);
+   //glVertex2f(0., MaxCoord);
+   //glEnd;
+}
+
 void DisplaySections()
 {
-   glColor3f(1., 0., 0.);
+  // glColor3f(1., 0., 0.);
    Point3DFloat Normal = BorderNormals[0];
    glNormal3f(Normal.x, Normal.y, Normal.z);
    glBegin(GL_POLYGON);
@@ -299,7 +372,7 @@ void DisplaySections()
 
 void DisplayQuads()
 {
-   glColor3f(.5, .5, .5);
+   //glColor3f(.5, .5, .5);
    for (int i = 0; i < Points.size() - 1; i++)
    {
       Point3DFloatSet PreviousSection = Points[i];
@@ -339,11 +412,18 @@ void Display(void)
    glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    //glColor3ub(20,100);
+
+   
    
    FirstSection();
    Sections();
    LastSection();
    glRotatef(90, 1, 1, 1); // поворот
+
+   DisplayGrid();
+
+   glColor3ub(100, 100, 100);
+
    DisplaySections();
    DisplayQuads();
    glFinish();
@@ -376,9 +456,9 @@ void main(int argc, char* argv[])
    glutDisplayFunc(Display);
    glutReshapeFunc(Reshape);
    glEnable(GL_DEPTH_TEST);
-   glEnable(GL_LIGHTING);
-   glEnable(GL_LIGHT0);
-   glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
-   glLightfv(GL_LIGHT0, GL_POSITION, light0_positionT);
+   //glEnable(GL_LIGHTING);
+   //glEnable(GL_LIGHT0);
+   //glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+   //glLightfv(GL_LIGHT0, GL_POSITION, light0_positionT);
    glutMainLoop();
 }
