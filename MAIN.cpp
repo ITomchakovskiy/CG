@@ -7,14 +7,14 @@
 
 #define M_PI 3.141592653589793
 
-using std::fstream;
+using std::fstream;  
 using std::ios;
 using std::vector;
 /* Разрмер окна */
-int Width = 1000;
-int Height = 1000;
-int MaxCoord = 1000;
-float GridStep = 100.;
+int Width = 1000; //Ширина окна
+int Height = 1000; //Высота окна
+int MaxCoord = 1000; //максимальная координата для прямых сетки
+float GridStep = 100.; //шаг сетки
 
 struct Point3DFloat
 {
@@ -36,31 +36,33 @@ struct Point3DFloat
    {
       return x * other.x + y * other.y + z * other.z;
    }
-   Point3DFloat Cross(const Point3DFloat& other)
+   Point3DFloat Cross(const Point3DFloat& other)  //декартово произведение
    {
       return Point3DFloat(y * other.z - z * other.y,
          z * other.x - x * other.z,
          x * other.y - y * other.x);
    }
-   double Norm()
+   double Norm() //расчет нормы вектора
    {
       return sqrt(x * x + y * y + z * z);
    }
-   void Normalize()
+   void Normalize() //Нормирование вектора
    {
       double Norm = this->Norm();
       x /= Norm;
       y /= Norm;
       z /= Norm;
    }
-   Point3DFloat ApplyChangesToPoint(float* Matrix_)
+   Point3DFloat ApplyChangesToPoint(float* Matrix_) //умножение модельно-видовой матрицы на вектор 
+                                                    //для получения координат точки в исходной системе координат по координатам в измененной системе координат
    {
       float coef = Matrix_[3] * x + Matrix_[7] * y + Matrix_[11] * z + Matrix_[15];
       return Point3DFloat(((Matrix_[0] * x + Matrix_[4] * y + Matrix_[8] * z + Matrix_[12]) / coef),
          ((Matrix_[1] * x + Matrix_[5] * y + Matrix_[9] * z + Matrix_[13]) / coef),
          ((Matrix_[2] * x + Matrix_[6] * y + Matrix_[10] * z + Matrix_[14]) / coef));
    }
-   Point3DFloat ApplyChangesToVector(float* Matrix_)
+   Point3DFloat ApplyChangesToVector(float* Matrix_)//умножение модельно-видовой матрицы на вектор 
+                                                    //для получения координат вектора в исходной системе координат по координатам в измененной системе координат
    {
       Point3DFloat result(((Matrix_[0] * x + Matrix_[4] * y + Matrix_[8] * z)),
          ((Matrix_[1] * x + Matrix_[5] * y + Matrix_[9] * z)),
@@ -68,7 +70,7 @@ struct Point3DFloat
       result.Normalize();
       return result;
    }
-   float GetAngle(Point3DFloat& other)
+   float GetAngle(Point3DFloat& other) //Расчет угла между векторами
    {
       double cos = (other.x * x + other.y * y + other.z * z) / (other.Norm() * this->Norm()); //считаем угол для поворота
       double angle_rad = acosf(cos);
@@ -77,44 +79,40 @@ struct Point3DFloat
    }
 };
 
-//Point3DFloat SectionVertices[5];
+vector<Point3DFloat> ReplicationPath; //траектория тиражирования
 
-// SectionNormalVectors[5];
-
-vector<Point3DFloat> ReplicationPath;
-
-struct Point3DFloatSet
+struct Point3DFloatSet 
 {
    Point3DFloat Points[5];
    Point3DFloatSet() {};
  
-   void ApplyChangesToPointsSet(float* Matrix_)
+   void ApplyChangesToPointsSet(float* Matrix_) //применение модельно-видовых преобразований ко всем точкам набора
    {
       for (int i = 0; i < 5; i++)
       {
          Points[i] = Points[i].ApplyChangesToPoint(Matrix_);
       }
    }
-   void ApplyChangesToVectorsSet(float* Matrix_)
+   void ApplyChangesToVectorsSet(float* Matrix_) //применение модельно-видовых преобразований ко всем векторам набора
    {
       for (int i = 0; i < 5; i++)
       {
-         Points[i] = Points[i].ApplyChangesToVector(Matrix_);
+         Points[i] = Points[i].ApplyChangesToVector(Matrix_); 
       }
    }
 };
 
-Point3DFloatSet SectionVertices;
+Point3DFloatSet SectionVertices; //вершины исходного сечения
 
-Point3DFloatSet SectionNormalVectors;
+Point3DFloatSet SectionNormalVectors; //векторы нормали для каждой стороны исходного сечения
 
-vector<Point3DFloatSet> Points;
+vector<Point3DFloatSet> Points; //массив сечений в узлах траектории тиражирования
 
-vector<Point3DFloatSet> NormalVectors;
+vector<Point3DFloatSet> NormalVectors; //массив боковых нормалей относительно направления тиражирования
 
-Point3DFloat BorderNormalVectors[2];
+Point3DFloat BorderNormalVectors[2]; //вектор нормали для граней соответствующих первому и последнему сечению
 
-void SectionNormalVectorsInit()
+void SectionNormalVectorsInit() //инициализация исходных нормалей
 {
    Point3DFloat VecZ = Point3DFloat(0., 0., 1.);
    for (int i = 0; i < 4; i++)
@@ -126,7 +124,7 @@ void SectionNormalVectorsInit()
    SectionNormalVectors.Points[4] = VecZ.Cross(VecSide);
 }
 
-void ReadSection()
+void ReadSection() //чтение сечения
 {
    fstream fin;
    fin.open("Section.txt", ios::in);
@@ -138,7 +136,7 @@ void ReadSection()
    fin.close();
 }
 
-void ReadReplicationPath()
+void ReadReplicationPath() //чтение траектории тиражирования
 {
    fstream fin;
    fin.open("ReplicationPath.txt", ios::in);
@@ -154,9 +152,9 @@ void ReadReplicationPath()
    fin.close();
 }
 
-vector<std::pair<float,float>> ScaleModifiers;
+vector<std::pair<float,float>> ScaleModifiers; //параметры масштабирования сечения по x и y
 
-void ReadScaleModifiers()
+void ReadScaleModifiers() //чтение параметров масштабирования
 {
    fstream fin;
    fin.open("ScaleModifiers.txt", ios::in);
@@ -170,7 +168,7 @@ void ReadScaleModifiers()
    fin.close();
 }
 
-void RotateVectorToVector(Point3DFloat& A, Point3DFloat& B)
+void RotateVectorToVector(Point3DFloat& A, Point3DFloat& B) //поворачивает систему координат таким образом чтобы вектора были сонапрвлены
 {
    float angle = A.GetAngle(B);
    Point3DFloat RotateDirection = B.Cross(A); //вектор,вокруг которого будем совершать поворот
@@ -183,7 +181,7 @@ void RotateVectorToVector(Point3DFloat& A, Point3DFloat& B)
 
 float Matrix[16];
 
-void ModifyScale(Point3DFloatSet& SectionPoints_, Point3DFloatSet& SectionNormalVectors_, float* Matrix_, int num)
+void ModifyScale(Point3DFloatSet& SectionPoints_, Point3DFloatSet& SectionNormalVectors_, float* Matrix_, int num) //применяет масштабирование к сечению и нормалям для сторон сечения
 {
    glPushMatrix(); //загрузка матрицы в стек
 
@@ -197,53 +195,53 @@ void ModifyScale(Point3DFloatSet& SectionPoints_, Point3DFloatSet& SectionNormal
    SectionNormalVectors_.ApplyChangesToVectorsSet(Matrix_);
 }
 
-void FirstSection()
+void FirstSection() // обработка первого сечения
 {
-   glPushMatrix();
+   glPushMatrix(); //сохраняем модельно-видовую матрицу
 
    Point3DFloatSet SectionPointsWithModifiedScale = SectionVertices;
    Point3DFloatSet SectionNormalVectorsWithModifiedScale = SectionNormalVectors;
-   ModifyScale(SectionPointsWithModifiedScale, SectionNormalVectorsWithModifiedScale, Matrix, 0);
+   ModifyScale(SectionPointsWithModifiedScale, SectionNormalVectorsWithModifiedScale, Matrix, 0); //масштабируем сечение и нормали
 
    glTranslatef(ReplicationPath[0].x, ReplicationPath[0].y, ReplicationPath[0].z); //перемещение в начало тиражирования
 
    Point3DFloat ReplicationDirection = ReplicationPath[1] - ReplicationPath[0];  //направление тиражирования
-   Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль
-   RotateVectorToVector(ReplicationDirection, SectionNormal);
+   Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль грани сечения
+   RotateVectorToVector(ReplicationDirection, SectionNormal); //поворачиваем сечение перпендикулярно к направлению тиражирования
 
    glGetFloatv(GL_MODELVIEW_MATRIX, Matrix); //получаем матрицу преобразований
 
-   SectionPointsWithModifiedScale.ApplyChangesToPointsSet(Matrix);
-   Points[0] = SectionPointsWithModifiedScale;
+   SectionPointsWithModifiedScale.ApplyChangesToPointsSet(Matrix); 
+   Points[0] = SectionPointsWithModifiedScale;  //заносим вершины сечения в исходной системе координат
 
    SectionNormalVectorsWithModifiedScale.ApplyChangesToVectorsSet(Matrix);
-   NormalVectors[0] = SectionNormalVectorsWithModifiedScale;
+   NormalVectors[0] = SectionNormalVectorsWithModifiedScale; //заносим нормали сторон сечения в исходной системе координат
 
-   BorderNormalVectors[0] = SectionNormal.ApplyChangesToVector(Matrix);
+   BorderNormalVectors[0] = SectionNormal.ApplyChangesToVector(Matrix); //то же для нормали самого сечения
 
    glPopMatrix();
 }
 
 void LastSection()
 {
-   glPushMatrix();
+   glPushMatrix(); //сохраняем модельно-видовую матрицу
 
    int num = Points.size() - 1;
 
    Point3DFloatSet SectionPointsWithModifiedScale = SectionVertices;
    Point3DFloatSet SectionNormalVectorsWithModifiedScale = SectionNormalVectors;
-   ModifyScale(SectionPointsWithModifiedScale, SectionNormalVectorsWithModifiedScale, Matrix, num);
+   ModifyScale(SectionPointsWithModifiedScale, SectionNormalVectorsWithModifiedScale, Matrix, num); //масштабируем сечение и нормали
 
    glTranslatef(ReplicationPath[num].x, ReplicationPath[num].y, ReplicationPath[num].z); //перемещение в начало тиражирования
 
    Point3DFloat ReplicationDirection = ReplicationPath[num] - ReplicationPath[num - 1];  //направление тиражирования
-   Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль
-   RotateVectorToVector(ReplicationDirection, SectionNormal);
+   Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль сечения
+   RotateVectorToVector(ReplicationDirection, SectionNormal); //поворачиваем сечение перпендикулярно к направлению тиражирования
 
    glGetFloatv(GL_MODELVIEW_MATRIX, Matrix); //получаем матрицу преобразований
 
-   SectionPointsWithModifiedScale.ApplyChangesToPointsSet(Matrix);
-   Points[num] = SectionPointsWithModifiedScale;
+   SectionPointsWithModifiedScale.ApplyChangesToPointsSet(Matrix); 
+   Points[num] = SectionPointsWithModifiedScale; //заносим вершины сечения в исходной системе координат
 
    SectionNormal.z = -SectionNormal.z;
    BorderNormalVectors[1] = SectionNormal.ApplyChangesToVector(Matrix);
@@ -255,25 +253,25 @@ void Sections()
 {
    for (int i = 1; i < ReplicationPath.size() - 1; i++)
    {
-      glPushMatrix();
+      glPushMatrix(); //сохраняем модельно-видовую матрицу
 
       Point3DFloatSet SectionPointsWithModifiedScale = SectionVertices;
       Point3DFloatSet SectionNormalVectorsWithModifiedScale = SectionNormalVectors;
-      ModifyScale(SectionPointsWithModifiedScale, SectionNormalVectorsWithModifiedScale, Matrix, i);
+      ModifyScale(SectionPointsWithModifiedScale, SectionNormalVectorsWithModifiedScale, Matrix, i);  //масштабируем сечение и нормали
 
       Point3DFloat PreviousReplicationDirection = ReplicationPath[i] - ReplicationPath[i - 1];  //направление тиражирования до узла
       Point3DFloat NextReplicationDirection = ReplicationPath[i + 1] - ReplicationPath[i];  //направление тиражирования после узла
-      Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль
+      Point3DFloat SectionNormal = Point3DFloat(0, 0, 1.); //нормаль сечения
       glTranslatef(ReplicationPath[i].x, ReplicationPath[i].y, ReplicationPath[i].z); //перемещение в узел
       glPushMatrix();
-      //для сечения
+      //для вершин сечения
       Point3DFloat AddingDirection = NextReplicationDirection - PreviousReplicationDirection;
       AddingDirection.x /= 2.;
       AddingDirection.y /= 2.;
       AddingDirection.z /= 2.;
       Point3DFloat ReplicationDirection = PreviousReplicationDirection + AddingDirection;
 
-      RotateVectorToVector(ReplicationDirection, SectionNormal);
+      RotateVectorToVector(ReplicationDirection, SectionNormal); //поворачиваем сечение на половину угла между направлением тиражирования до узла и после
 
       glGetFloatv(GL_MODELVIEW_MATRIX, Matrix); //получаем матрицу преобразований
 
@@ -284,7 +282,7 @@ void Sections()
       //для нормалей
       ReplicationDirection = NextReplicationDirection;
 
-      RotateVectorToVector(ReplicationDirection, SectionNormal);
+      RotateVectorToVector(ReplicationDirection, SectionNormal); //поворачиваем сечение перпендикулярно к направлению тиражирования
 
       glGetFloatv(GL_MODELVIEW_MATRIX, Matrix); //получаем матрицу преобразований
 
@@ -300,9 +298,9 @@ void DisplayGrid()
    glLineWidth(10);
 
    glColor3ub(255, 0, 0);
-   glBegin(GL_LINES);
-
-   glVertex2f(-MaxCoord, 0.);
+   glBegin(GL_LINES); 
+                        //рисуем толстые красные отрезки для оси х и для границ сетки по х
+   glVertex2f(-MaxCoord, 0.); 
    glVertex2f(MaxCoord, 0.);
 
    glVertex2f(-MaxCoord, -MaxCoord);
@@ -310,7 +308,7 @@ void DisplayGrid()
 
    glVertex2f(-MaxCoord, MaxCoord);
    glVertex2f(MaxCoord, MaxCoord);
-
+                        //рисуем толстые синие отрезки для оси y и для границ сетки по y
    glColor3ub(0, 0, 255);
    glVertex2f(0., -MaxCoord);
    glVertex2f(0., MaxCoord);
@@ -325,14 +323,12 @@ void DisplayGrid()
 
    glLineWidth(3);
 
-
-
    glLineStipple(1, 255);
    glEnable(GL_LINE_STIPPLE);
 
    glBegin(GL_LINES);
 
-   glColor3ub(255, 0, 0);
+   glColor3ub(255, 0, 0); //рисуем тонкие отрезки пунктиром красным цветом по х
 
    for (int i = 1; i < MaxCoord / GridStep; i++)
    {
@@ -343,7 +339,7 @@ void DisplayGrid()
       glVertex2f(MaxCoord, -i * GridStep);
    }
 
-   glColor3ub(0, 0, 255);
+   glColor3ub(0, 0, 255); //рисуем тонкие отрезки пунктиром синим цветом по у
 
    for (int i = 1; i < MaxCoord / GridStep; i++)
    {
@@ -359,9 +355,9 @@ void DisplayGrid()
    glDisable(GL_LINE_STIPPLE);
 }
 
-void DisplaySections()
+void DisplaySections() //отрисовка сечений
 {
-   glColor3ub(255., 255., 0.);
+   glColor3ub(255., 255., 0.); //цвет сечения
    Point3DFloat Normal = BorderNormalVectors[0];
    glNormal3f(Normal.x, Normal.y, Normal.z);
    glBegin(GL_POLYGON);
@@ -384,9 +380,9 @@ void DisplaySections()
    glEnd();
 }
 
-void DisplayQuads()
+void DisplayQuads() //отрисовка боковых граней
 {
-   glColor3ub(100, 100, 100);
+   glColor3ub(100, 100, 100); //цвет боковых граней
    for (int i = 0; i < Points.size() - 1; i++)
    {
       Point3DFloatSet PreviousSection = Points[i];
@@ -441,7 +437,7 @@ void Display(void)
    glFinish();
 }
 
-float light0_positionT[] = { 500, 500, 500, 1 };
+//float light0_positionT[] = { 500, 500, 500, 1 };
 
 void Reshape(GLint w, GLint h)
 {
