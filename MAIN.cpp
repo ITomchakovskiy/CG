@@ -1,7 +1,20 @@
 #include <vector>
 
+#include <iostream>
+
+#include <string>
+
+#include <fstream>
+
+#include <limits>
+
 #include "glut.h"
 
+
+using std::string;
+using std::vector;
+using std::fstream;
+using std::ios;
 
 GLubyte ColorR = 0, ColorG = 0, ColorB = 0;
 
@@ -93,7 +106,131 @@ struct PolygonGroup  //группа полигонов
    }
 };
 
-std::vector<PolygonGroup> PolygonGroups;
+GLushort Vector2DCoordToPointCoord(double X)
+{
+   GLushort x_new = 0;
+   if (X >= 0 && X <= std::numeric_limits<unsigned short>::max() / 10)
+      x_new = static_cast<unsigned short>(X)*10;
+   return x_new;
+}
+
+struct Vector2D
+{
+   double X;
+   double Y;
+   Vector2D(double X_, double Y_)
+   {
+      X = X_;
+      Y = Y_;
+   }
+   Vector2D() {};
+   Point ToPoint()
+   {
+      GLushort newX = Vector2DCoordToPointCoord(X);
+      GLushort newY = Vector2DCoordToPointCoord(Y);
+      return Point(newX, newY);
+   }
+};
+
+
+
+struct Element
+{
+   vector<int> VertexNumbers;
+};
+
+
+
+struct FiniteElementMesh
+{
+   vector<Vector2D> Vertices;
+   vector<Element> Elements;
+
+   FiniteElementMesh() {};
+
+   FiniteElementMesh(string VertexFileName, string ElementsFileName)
+   {
+      ReadVertices(VertexFileName);
+      ReadElements(ElementsFileName);
+   }
+
+   Polygon ElementToPolygon(int num)
+   {
+      Polygon polygon;
+      Element element = Elements[num];
+      int n = element.VertexNumbers.size();
+      polygon.Vertices.resize(n);
+      for (int i = 0; i < n; i++)
+      {
+         int point_num = element.VertexNumbers[i];
+         Vector2D vector_ = Vertices[point_num];
+         polygon.Vertices[i] = vector_.ToPoint();
+      }
+      return polygon;
+   }
+
+   PolygonGroup MeshToPolygonGroup()
+   {
+      PolygonGroup group;
+      int elements_num = Elements.size();
+      group.Polygons.resize(elements_num);
+      for (int i = 0; i < elements_num; i++)
+      {
+         //Element element = Elements[i];
+         group.Polygons[i] = ElementToPolygon(i);
+         
+      }
+      return group;
+   }
+
+private:
+   void ReadVertices(string VertexFileName)
+   {
+      fstream f;
+      f.open(VertexFileName, ios::in);
+      int n = 0;
+      f >> n;
+      Vertices.resize(n);
+      for (int i = 0; i < n; i++)
+      {
+         double X, Y;
+         f >> X;
+         f >> Y;
+         //X *= 10;
+         //Y *= 10;
+         Vertices[i] = Vector2D(X, Y);
+      }
+      f.close();
+   }
+   void ReadElements(string ElementsFileName)
+   {
+      fstream f;
+      f.open(ElementsFileName, ios::in);
+      int n = 0;
+      f >> n;
+      Elements.resize(n);
+      for (int i = 0; i < n; i++)
+      {
+         int n_vertices;
+         f >> n_vertices;
+         Elements[i].VertexNumbers.resize(n_vertices);
+         vector<int>& vertices_num = Elements[i].VertexNumbers;
+         for (int j = 0; j < n_vertices; j++)
+            f >> vertices_num[j];
+      }
+      f.close();
+   }
+};
+
+vector<PolygonGroup> PolygonGroups;
+
+//void ElementsToPolygons(FiniteElementMesh& mesh, vector<PolygonGroup>& polygonGroups)
+//{
+//   polygonGroups.resize(3);
+//
+//}
+
+//void ReadVertices(string fileName )
 
 void Render()     //отрисовка полигонов
 {
@@ -286,6 +423,8 @@ void Menu(int pos)
    glutPostRedisplay();
 }
 
+//void Start(int )
+
 /* Головная программа */
 void main(int argc, char* argv[])
 {
@@ -296,6 +435,10 @@ void main(int argc, char* argv[])
 
    PolygonGroups.resize(1);
 
+   FiniteElementMesh mesh("vertex.txt", "elements.txt");
+
+   PolygonGroups[0] = mesh.MeshToPolygonGroup();
+   
    Menu(Empty);
    glutDisplayFunc(Display);
    glutReshapeFunc(Reshape);
