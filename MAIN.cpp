@@ -110,7 +110,7 @@ GLushort Vector2DCoordToPointCoord(double X)
 {
    GLushort x_new = 0;
    if (X >= 0 && X <= std::numeric_limits<unsigned short>::max() / 10)
-      x_new = static_cast<unsigned short>(X)*10;
+      x_new = static_cast<unsigned short>(X*100);
    return x_new;
 }
 
@@ -234,7 +234,7 @@ vector<PolygonGroup> PolygonGroups;
 
 void Render()     //отрисовка полигонов
 {
-   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+   /*glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    for (int i = 0; i < PolygonGroups.size(); i++)
    {
       PolygonGroup* CurPolygonGroup = &PolygonGroups[i];
@@ -250,7 +250,7 @@ void Render()     //отрисовка полигонов
          }
          glEnd();
       }
-   }
+   }*/
    glLineWidth(LineWidth);
    int PolygonGroup_last = PolygonGroups.size() - 1;
    PolygonGroup* CurPolygonGroup = &PolygonGroups[PolygonGroup_last];
