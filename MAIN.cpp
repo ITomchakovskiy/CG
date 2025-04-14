@@ -16,7 +16,7 @@ using std::vector;
 using std::fstream;
 using std::ios;
 
-GLubyte ColorR = 0, ColorG = 0, ColorB = 0;
+GLfloat ColorR = 0, ColorG = 0, ColorB = 0;
 
 GLushort Width = 512, Height = 512;
 
@@ -43,17 +43,34 @@ struct Point      //точка
    Point(GLushort x_, GLushort y_) : x(x_), y(y_) {}
 };
 
+//struct Point3D      //точка
+//{
+//   double X;
+//   double X;
+//   double X;
+//   GLushort y;
+//   //Point() {}
+//   Point3D()
+//   //Point(GLushort x_, GLushort y_) : x(x_), y(y_) {}
+//};
+
 Point delta_r(0, 0);
    
 struct Polygon    //многоугольник
 {
-   std::vector<Point> Vertices;
+   vector<Point> Vertices;
    Polygon() {};
+};
+
+struct Polygon3D    //многоугольник
+{
+   vector<Vector3D> Vertices;
+   Polygon3D() {};
 };
 
 struct PolygonGroup  //группа полигонов
 {
-   std::vector<Polygon> Polygons;
+   vector<Polygon> Polygons;
    GLubyte R;
    GLubyte G;
    GLubyte B;
@@ -106,6 +123,61 @@ struct PolygonGroup  //группа полигонов
    }
 };
 
+struct PolygonGroup3D  //группа полигонов
+{
+   vector<Polygon3D> Polygons;
+   float R;
+   float G;
+   float B;
+   //Point Min_border;
+   //Point Max_border;
+   PolygonGroup3D()
+      : R(ColorR), G(ColorG), B(ColorB)
+   {
+      Polygons.resize(1);
+   };
+   //void MoveAllVertices(GLshort x, GLshort y)
+   //{
+   //   if (x < 0 && -x > Min_border.x)  //при слишком большом смещении корректируем его
+   //      x = X_Min - Min_border.x;
+   //   else if (x > 0 && Max_border.x > X_Max - x)
+   //      x = X_Max - Max_border.x;
+   //   if (y < 0 && -y > Min_border.y)
+   //      y = Y_Min - Min_border.y;
+   //   else if (y > 0 && Max_border.y > Y_Max - y)
+   //      y = Y_Max - Max_border.y;
+
+   //   delta_r.x += x;
+   //   delta_r.y += y;
+
+   //   Min_border.x += x;         //обновляем границы
+   //   Max_border.x += x;
+   //   Min_border.y += y;
+   //   Max_border.y += y;
+   //   for (int i = 0; i < Polygons.size(); i++)       //перемещаем точки
+   //   {
+   //      Polygon* CurPolygon = &Polygons[i];
+   //      for (int j = 0; j < CurPolygon->Vertices.size(); j++)
+   //      {
+   //         Point* CurVertex = &CurPolygon->Vertices[j];
+   //         CurVertex->x += x;
+   //         CurVertex->y += y;
+   //      }
+   //   }
+   //}
+   /*void UpdateBorders(GLushort x, GLushort y)
+   {
+      if (x < Min_border.x)
+         Min_border.x = x;
+      else if (x > Min_border.x)
+         Max_border.x = x;
+      if (y < Min_border.y)
+         Min_border.y = y;
+      else if (y > Min_border.y)
+         Max_border.y = y;
+   }*/
+};
+
 GLushort Vector2DCoordToPointCoord(double X)
 {
    GLushort x_new = 0;
@@ -130,6 +202,26 @@ struct Vector2D
       GLushort newY = Vector2DCoordToPointCoord(Y);
       return Point(newX, newY);
    }
+};
+
+struct Vector3D
+{
+   double X;
+   double Y;
+   double Z;
+   Vector3D(double X_, double Y_, double Z_)
+   {
+      X = X_;
+      Y = Y_;
+      Z = Z_;
+   }
+   Vector3D() {};
+   /*Point ToPoint()
+   {
+      GLushort newX = Vector2DCoordToPointCoord(X);
+      GLushort newY = Vector2DCoordToPointCoord(Y);
+      return Point(newX, newY);
+   }*/
 };
 
 
@@ -222,7 +314,89 @@ private:
    }
 };
 
-vector<PolygonGroup> PolygonGroups;
+struct FiniteElementMesh3D
+{
+   vector<Vector3D> Vertices;
+   vector<Element> Elements;
+
+   FiniteElementMesh3D() {};
+
+   FiniteElementMesh3D(string VertexFileName, string ElementsFileName)
+   {
+      ReadVertices(VertexFileName);
+      ReadElements(ElementsFileName);
+   }
+
+   Polygon ElementToPolygon(int num)
+   {
+      Polygon polygon;
+      Element element = Elements[num];
+      int n = element.VertexNumbers.size();
+      polygon.Vertices.resize(n);
+      for (int i = 0; i < n; i++)
+      {
+         int point_num = element.VertexNumbers[i];
+         Vector2D vector_ = Vertices[point_num];
+         polygon.Vertices[i] = vector_.ToPoint();
+      }
+      return polygon;
+   }
+
+   PolygonGroup MeshToPolygonGroup()
+   {
+      PolygonGroup group;
+      int elements_num = Elements.size();
+      group.Polygons.resize(elements_num);
+      for (int i = 0; i < elements_num; i++)
+      {
+         //Element element = Elements[i];
+         group.Polygons[i] = ElementToPolygon(i);
+
+      }
+      return group;
+   }
+
+private:
+   void ReadVertices(string VertexFileName)
+   {
+      fstream f;
+      f.open(VertexFileName, ios::in);
+      int n = 0;
+      f >> n;
+      Vertices.resize(n);
+      for (int i = 0; i < n; i++)
+      {
+         double X, Y, Z;
+         f >> X;
+         f >> Y;
+         f >> Z;
+         //X *= 10;
+         //Y *= 10;
+         Vertices[i] = Vector3D(X, Y,Z);
+      }
+      f.close();
+   }
+   void ReadElements(string ElementsFileName)
+   {
+      fstream f;
+      f.open(ElementsFileName, ios::in);
+      int n = 0;
+      f >> n;
+      Elements.resize(n);
+      for (int i = 0; i < n; i++)
+      {
+         int n_vertices;
+         f >> n_vertices;
+         Elements[i].VertexNumbers.resize(n_vertices);
+         vector<int>& vertices_num = Elements[i].VertexNumbers;
+         for (int j = 0; j < n_vertices; j++)
+            f >> vertices_num[j];
+      }
+      f.close();
+   }
+};
+
+vector<PolygonGroup3D> PolygonGroups3D;
 
 //void ElementsToPolygons(FiniteElementMesh& mesh, vector<PolygonGroup>& polygonGroups)
 //{
