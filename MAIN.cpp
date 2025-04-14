@@ -34,10 +34,10 @@ float normal_vectors_scale = 100.;
 bool smoothNormals = false; // Флаг для сглаженных нормалей
 bool displaynormals = false; // Флаг для отображения нормалей
 bool need_texture = false; // Флаг для текстуры
-bool display_frame = false; //флаг для отображения каркаса
+bool display_frame = true; //флаг для отображения каркаса
 int currentProjection = 1; // 0 - Перспективная, 1 - Ортографическая
 bool need_ligtning = false; // Флаг для освещения
-bool display_grid = false;
+bool display_grid = true;
 
 GLuint textureID;
 
@@ -720,7 +720,7 @@ void DisplayFrame()
    //}
    //glEnd();
 
-   glNormal3f(0, 0, 0);
+   //glNormal3f(0, 0, 0);
    glColor3ub(0, 255, 0); //цвет отображения каркаса
    glLineWidth(10);
    int PolygonGroup_last = PolygonGroups3D.size() - 1;
@@ -737,22 +737,22 @@ void DisplayFrame()
       Polygon3D* CurPolygon = &CurPolygonGroup->Polygons[j];      //отрисовка тетраэдра
       glBegin(GL_LINE_LOOP);
       
-      glVertex3f(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
-      glVertex3f(CurPolygon->Vertices[1].X, CurPolygon->Vertices[1].Y, CurPolygon->Vertices[1].Z);
-      glVertex3f(CurPolygon->Vertices[2].X, CurPolygon->Vertices[2].Y, CurPolygon->Vertices[2].Z);
+      glVertex3d(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
+      glVertex3d(CurPolygon->Vertices[1].X, CurPolygon->Vertices[1].Y, CurPolygon->Vertices[1].Z);
+      glVertex3d(CurPolygon->Vertices[2].X, CurPolygon->Vertices[2].Y, CurPolygon->Vertices[2].Z);
 
       glEnd();
 
       glBegin(GL_LINES);
 
-      glVertex3f(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
-      glVertex3f(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
+      glVertex3d(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
+      glVertex3d(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
 
-      glVertex3f(CurPolygon->Vertices[1].X, CurPolygon->Vertices[1].Y, CurPolygon->Vertices[1].Z);
-      glVertex3f(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
+      glVertex3d(CurPolygon->Vertices[1].X, CurPolygon->Vertices[1].Y, CurPolygon->Vertices[1].Z);
+      glVertex3d(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
 
-      glVertex3f(CurPolygon->Vertices[2].X, CurPolygon->Vertices[2].Y, CurPolygon->Vertices[2].Z);
-      glVertex3f(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
+      glVertex3d(CurPolygon->Vertices[2].X, CurPolygon->Vertices[2].Y, CurPolygon->Vertices[2].Z);
+      glVertex3d(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
 
       glEnd();
 
@@ -761,7 +761,7 @@ void DisplayFrame()
       glBegin(GL_POINTS);
 
       for (int i = 0; i < CurPolygon->Vertices.size(); i++)
-         glVertex3f(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
+         glVertex3d(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
       
       glEnd();
    }
@@ -955,9 +955,7 @@ void main(int argc, char* argv[])
 {
    PolygonGroups3D.resize(1);
 
-   FiniteElementMesh3D mesh("vertex3D1.txt", "elements3D1.txt");
-
-   PolygonGroups3D[0] = mesh.MeshToPolygonGroup();
+   
 
    //Points.resize(ReplicationPath.size());
    glutInit(&argc, argv);
@@ -974,6 +972,10 @@ void main(int argc, char* argv[])
   // LastSection();
   // NormalVectorsInitialize();
    //SmoothNormalVectorsInitialize();
+
+   FiniteElementMesh3D mesh("vertex3D1.txt", "elements3D1.txt");
+
+   PolygonGroups3D[0] = mesh.MeshToPolygonGroup();
 
    Menu(Empty);
    glLoadIdentity();
