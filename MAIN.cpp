@@ -688,6 +688,8 @@ void DisplayGrid()
    glDisable(GL_LINE_STIPPLE);
 }
 
+FiniteElementMesh3D mesh("vertex3D1.txt", "elements3D1.txt");
+
 void DisplayFrame()
 {
    //glNormal3f(0, 0, 0);
@@ -734,6 +736,7 @@ void DisplayFrame()
    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
    {
+      glColor3ub(0, 255, 0);
       Polygon3D* CurPolygon = &CurPolygonGroup->Polygons[j];      //отрисовка тетраэдра
       glBegin(GL_LINE_LOOP);
       
@@ -756,15 +759,28 @@ void DisplayFrame()
 
       glEnd();
 
-
-      glColor3ub(255, 0, 255); //цвет отображения точек
-      glBegin(GL_POINTS);
-
-      for (int i = 0; i < CurPolygon->Vertices.size(); i++)
-         glVertex3d(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
       
-      glEnd();
+      
+      //glEnd();
    }
+
+   glPointSize(15.0f);
+   glColor3ub(255, 0, 255); //цвет отображения точек
+   glBegin(GL_POINTS);
+
+   for (int i = 0; i < mesh.Vertices.size(); i++)
+   {
+      glVertex3d(mesh.Vertices[i].X, mesh.Vertices[i].Y, mesh.Vertices[i].Z);
+   }
+
+   glEnd();
+
+   //glPointSize(15.0f);
+   //glColor3ub(255, 0, 255); //цвет отображения точек
+   //glBegin(GL_POINTS);
+
+   //for (int i = 0; i < CurPolygon->Vertices.size(); i++)
+   //   glVertex3d(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
 }
 
 void Display(void)
@@ -951,6 +967,8 @@ void Menu(int pos)
    glutPostRedisplay();
 }
 
+
+
 void main(int argc, char* argv[])
 {
    PolygonGroups3D.resize(1);
@@ -973,7 +991,7 @@ void main(int argc, char* argv[])
   // NormalVectorsInitialize();
    //SmoothNormalVectorsInitialize();
 
-   FiniteElementMesh3D mesh("vertex3D1.txt", "elements3D1.txt");
+   //FiniteElementMesh3D mesh("vertex3D1.txt", "elements3D1.txt");
 
    PolygonGroups3D[0] = mesh.MeshToPolygonGroup();
 
