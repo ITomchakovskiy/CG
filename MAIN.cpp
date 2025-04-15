@@ -443,7 +443,7 @@ private:
    }
 };
 
-vector<PolygonGroup3D> PolygonGroups3D;
+
 
 //void ElementsToPolygons(FiniteElementMesh& mesh, vector<PolygonGroup>& polygonGroups)
 //{
@@ -636,21 +636,25 @@ void DisplayGrid()
    glVertex2f(-MaxCoord, 0.);
    glVertex2f(MaxCoord, 0.);
 
-   glVertex2f(-MaxCoord, -MaxCoord);
-   glVertex2f(MaxCoord, -MaxCoord);
+   //glVertex2f(-MaxCoord, -MaxCoord);
+   //glVertex2f(MaxCoord, -MaxCoord);
 
-   glVertex2f(-MaxCoord, MaxCoord);
-   glVertex2f(MaxCoord, MaxCoord);
-   //рисуем толстые синие отрезки для оси y и для границ сетки по y
-   glColor3ub(0, 0, 255);
+   //glVertex2f(-MaxCoord, MaxCoord);
+   //glVertex2f(MaxCoord, MaxCoord);
+   //рисуем толстые зеленые отрезки для оси y и для границ сетки по y
+   glColor3ub(0, 255, 0);
    glVertex2f(0., -MaxCoord);
    glVertex2f(0., MaxCoord);
 
-   glVertex2f(-MaxCoord, -MaxCoord);
-   glVertex2f(-MaxCoord, MaxCoord);
+   glColor3ub(0, 0, 255);
+   glVertex3f(0.,0, -MaxCoord);
+   glVertex3f(0.,0, MaxCoord);
 
-   glVertex2f(MaxCoord, -MaxCoord);
-   glVertex2f(MaxCoord, MaxCoord);
+   //glVertex2f(-MaxCoord, -MaxCoord);
+   //glVertex2f(-MaxCoord, MaxCoord);
+
+  // glVertex2f(MaxCoord, -MaxCoord);
+   //glVertex2f(MaxCoord, MaxCoord);
 
    glEnd();
 
@@ -665,22 +669,33 @@ void DisplayGrid()
 
    for (int i = 1; i < MaxCoord / GridStep; i++)
    {
-      glVertex2f(-MaxCoord, i * GridStep);
-      glVertex2f(MaxCoord, i * GridStep);
+      glVertex2f(-50, i * GridStep);
+      glVertex2f(50, i * GridStep);
 
-      glVertex2f(-MaxCoord, -i * GridStep);
-      glVertex2f(MaxCoord, -i * GridStep);
+      glVertex2f(-50, -i * GridStep);
+      glVertex2f(50, -i * GridStep);
+   }
+
+   glColor3ub(0, 255, 0); //рисуем тонкие отрезки пунктиром синим цветом по у
+
+   for (int i = 1; i < MaxCoord / GridStep; i++)
+   {
+      glVertex2f(i * GridStep, -50);
+      glVertex2f(i * GridStep, 50);
+
+      glVertex2f(-i * GridStep, -50);
+      glVertex2f(-i * GridStep, 50);
    }
 
    glColor3ub(0, 0, 255); //рисуем тонкие отрезки пунктиром синим цветом по у
 
    for (int i = 1; i < MaxCoord / GridStep; i++)
    {
-      glVertex2f(i * GridStep, -MaxCoord);
-      glVertex2f(i * GridStep, MaxCoord);
+      glVertex3f(i * GridStep, i * GridStep, -50);
+      glVertex3f(i * GridStep, i * GridStep, 50);
 
-      glVertex2f(-i * GridStep, -MaxCoord);
-      glVertex2f(-i * GridStep, MaxCoord);
+      glVertex3f(-i * GridStep, -i * GridStep, -50);
+      glVertex3f(-i * GridStep, -i * GridStep, 50);
    }
 
    glEnd();
@@ -689,6 +704,66 @@ void DisplayGrid()
 }
 
 FiniteElementMesh3D mesh("vertex3D1.txt", "elements3D1.txt");
+
+vector<PolygonGroup3D> PolygonGroups3D;
+
+//PolygonGroups3D.resize(1);
+
+
+
+
+void DisplayVolume()
+{
+   glEnable(GL_BLEND);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   glDepthMask(GL_FALSE);  // опционально, если хочешь "прозрачность сквозь"
+   glColor4f(1.0f, 0.5f, 0.0f, 0.4f);  // красный, 40% прозрачности
+
+   int PolygonGroup_last = PolygonGroups3D.size() - 1;
+   PolygonGroup3D* CurPolygonGroup = &PolygonGroups3D[PolygonGroup_last];
+
+
+
+   glBegin(GL_TRIANGLES);
+
+   for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
+   {
+      //glColor3ub(0, 0, 0);
+      Polygon3D* CurPolygon = &CurPolygonGroup->Polygons[j];      //отрисовка тетраэдра
+      //glBegin(GL_LINE_LOOP);
+
+      glVertex3d(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
+      glVertex3d(CurPolygon->Vertices[1].X, CurPolygon->Vertices[1].Y, CurPolygon->Vertices[1].Z);
+      glVertex3d(CurPolygon->Vertices[2].X, CurPolygon->Vertices[2].Y, CurPolygon->Vertices[2].Z);
+
+      //glEnd();
+
+      //glBegin(GL_LINES);
+
+      glVertex3d(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
+      glVertex3d(CurPolygon->Vertices[1].X, CurPolygon->Vertices[1].Y, CurPolygon->Vertices[1].Z);
+      glVertex3d(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
+
+      glVertex3d(CurPolygon->Vertices[1].X, CurPolygon->Vertices[1].Y, CurPolygon->Vertices[1].Z);
+      glVertex3d(CurPolygon->Vertices[2].X, CurPolygon->Vertices[2].Y, CurPolygon->Vertices[2].Z);
+      glVertex3d(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
+
+      glVertex3d(CurPolygon->Vertices[0].X, CurPolygon->Vertices[0].Y, CurPolygon->Vertices[0].Z);
+      glVertex3d(CurPolygon->Vertices[2].X, CurPolygon->Vertices[2].Y, CurPolygon->Vertices[2].Z);
+      glVertex3d(CurPolygon->Vertices[3].X, CurPolygon->Vertices[3].Y, CurPolygon->Vertices[3].Z);
+   }
+   glEnd();
+
+   /*for(int i = )
+   glVertex3f(...);
+   glVertex3f(...);
+   glVertex3f(...);
+   glEnd();*/
+
+   glDepthMask(GL_TRUE);  // не забудь включить обратно!
+   glDisable(GL_BLEND);
+   
+}
 
 void DisplayFrame()
 {
@@ -736,7 +811,7 @@ void DisplayFrame()
    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
    {
-      glColor3ub(0, 255, 0);
+      glColor3ub(0, 0, 0);
       Polygon3D* CurPolygon = &CurPolygonGroup->Polygons[j];      //отрисовка тетраэдра
       glBegin(GL_LINE_LOOP);
       
@@ -759,12 +834,10 @@ void DisplayFrame()
 
       glEnd();
 
-      
-      
       //glEnd();
    }
 
-   glPointSize(15.0f);
+   glPointSize(10.0f);
    glColor3ub(255, 0, 255); //цвет отображения точек
    glBegin(GL_POINTS);
 
@@ -785,7 +858,7 @@ void DisplayFrame()
 
 void Display(void)
 {
-   glClearColor(0, 0, 0, 1);
+   glClearColor(1, 1, 1, 1);
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
    glMatrixMode(GL_MODELVIEW);
    glLoadIdentity();
@@ -802,13 +875,10 @@ void Display(void)
    if (display_grid)
       DisplayGrid();
 
-   if (display_frame)
-      DisplayFrame();
-   else
-   {
-      //DisplaySections();
-      //DisplayQuads();
-   }
+   DisplayVolume();
+   //if (display_frame)
+   DisplayFrame();
+   
    if (displaynormals)
       //DisplayNormalVectors();
    //glLoadIdentity();
@@ -973,7 +1043,7 @@ void main(int argc, char* argv[])
 {
    PolygonGroups3D.resize(1);
 
-   
+   PolygonGroups3D[0] = mesh.MeshToPolygonGroup();
 
    //Points.resize(ReplicationPath.size());
    glutInit(&argc, argv);
@@ -993,7 +1063,7 @@ void main(int argc, char* argv[])
 
    //FiniteElementMesh3D mesh("vertex3D1.txt", "elements3D1.txt");
 
-   PolygonGroups3D[0] = mesh.MeshToPolygonGroup();
+   
 
    Menu(Empty);
    glLoadIdentity();
