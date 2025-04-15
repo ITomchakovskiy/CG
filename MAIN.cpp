@@ -665,37 +665,55 @@ void DisplayGrid()
 
    glBegin(GL_LINES);
 
+   glColor3ub(0, 255, 0); //рисуем тонкие отрезки пунктиром красным цветом по х
+
+   for (int i = 1; i < MaxCoord / GridStep; i++)
+   {
+      glVertex2f(-25, i * GridStep);
+      glVertex2f(25, i * GridStep);
+
+      glVertex2f(-25, -i * GridStep);
+      glVertex2f(25, -i * GridStep);
+
+      glVertex3f(0, i * GridStep, -25);
+      glVertex3f(0, i * GridStep, 25);
+              
+      glVertex3f(0, -i * GridStep, -25);
+      glVertex3f(0, -i * GridStep, 25);
+   }
+
    glColor3ub(255, 0, 0); //рисуем тонкие отрезки пунктиром красным цветом по х
 
    for (int i = 1; i < MaxCoord / GridStep; i++)
    {
-      glVertex2f(-50, i * GridStep);
-      glVertex2f(50, i * GridStep);
+      glVertex2f(i * GridStep, -25);
+      glVertex2f(i * GridStep, 25);
 
-      glVertex2f(-50, -i * GridStep);
-      glVertex2f(50, -i * GridStep);
-   }
+      glVertex2f(-i * GridStep, -25);
+      glVertex2f(-i * GridStep, 25);
 
-   glColor3ub(0, 255, 0); //рисуем тонкие отрезки пунктиром синим цветом по у
-
-   for (int i = 1; i < MaxCoord / GridStep; i++)
-   {
-      glVertex2f(i * GridStep, -50);
-      glVertex2f(i * GridStep, 50);
-
-      glVertex2f(-i * GridStep, -50);
-      glVertex2f(-i * GridStep, 50);
+      glVertex3f(i * GridStep, 0, -25);
+      glVertex3f(i * GridStep, 0, 25);
+                                    
+      glVertex3f(-i * GridStep, 0,-25);
+      glVertex3f(-i * GridStep, 0 ,25);
    }
 
    glColor3ub(0, 0, 255); //рисуем тонкие отрезки пунктиром синим цветом по у
 
    for (int i = 1; i < MaxCoord / GridStep; i++)
    {
-      glVertex3f(i * GridStep, i * GridStep, -50);
-      glVertex3f(i * GridStep, i * GridStep, 50);
+      glVertex3f(-25, 0, i * GridStep);
+      glVertex3f(25, 0, i * GridStep);
 
-      glVertex3f(-i * GridStep, -i * GridStep, -50);
-      glVertex3f(-i * GridStep, -i * GridStep, 50);
+      glVertex3f(-25,0, -i * GridStep);
+      glVertex3f(25,0, -i * GridStep);
+
+      glVertex3f(0, -25, i * GridStep);
+      glVertex3f(0, 25, i * GridStep);
+                 
+      glVertex3f(0, -25, -i * GridStep);
+      glVertex3f(0, 25, -i * GridStep);
    }
 
    glEnd();
