@@ -817,7 +817,7 @@ void DisplayFrame()
 
    //glNormal3f(0, 0, 0);
    glColor3ub(0, 255, 0); //цвет отображения каркаса
-   glLineWidth(10);
+   glLineWidth(4);
    int PolygonGroup_last = PolygonGroups3D.size() - 1;
    PolygonGroup3D* CurPolygonGroup = &PolygonGroups3D[PolygonGroup_last];
    //int brightness = CurPolygonGroup->R + CurPolygonGroup->G + CurPolygonGroup->B;
@@ -855,16 +855,16 @@ void DisplayFrame()
       //glEnd();
    }
 
-   glPointSize(10.0f);
-   glColor3ub(255, 0, 255); //цвет отображения точек
-   glBegin(GL_POINTS);
+   //glPointSize(10.0f);
+   //glColor3ub(255, 0, 255); //цвет отображения точек
+   //glBegin(GL_POINTS);
 
-   for (int i = 0; i < mesh.Vertices.size(); i++)
-   {
-      glVertex3d(mesh.Vertices[i].X, mesh.Vertices[i].Y, mesh.Vertices[i].Z);
-   }
+   //for (int i = 0; i < mesh.Vertices.size(); i++)
+   //{
+   //   glVertex3d(mesh.Vertices[i].X, mesh.Vertices[i].Y, mesh.Vertices[i].Z);
+   //}
 
-   glEnd();
+   //glEnd();
 
    //glPointSize(15.0f);
    //glColor3ub(255, 0, 255); //цвет отображения точек
