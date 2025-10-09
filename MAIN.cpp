@@ -196,7 +196,7 @@ private:
          double X, Y;
          f >> X;
          f >> Y;
-         //X *= 10;
+        // X *= 10;
          //Y *= 10;
          Vertices[i] = Vector2D(X, Y);
       }
@@ -211,8 +211,8 @@ private:
       Elements.resize(n);
       for (int i = 0; i < n; i++)
       {
-         int n_vertices;
-         f >> n_vertices;
+         int n_vertices = 3; //костыль
+         //f >> n_vertices;
          Elements[i].VertexNumbers.resize(n_vertices);
          vector<int>& vertices_num = Elements[i].VertexNumbers;
          for (int j = 0; j < n_vertices; j++)
@@ -259,6 +259,22 @@ void Render()     //отрисовка полигонов
       glColor3ub(100, 100, 100);          //если цвет темный - граница светло-серая
    else
       glColor3ub(0, 0, 0);                //если цвет - светлый - граница черная
+
+   glPointSize(10);
+   glBegin(GL_POINTS);
+      for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
+      {
+         Polygon* CurPolygon = &CurPolygonGroup->Polygons[j];
+         //glBegin(GL_POLYGON);
+         for (int k = 0; k < CurPolygon->Vertices.size(); k++)
+         {
+            Point* curVertex = &CurPolygon->Vertices[k];
+            glVertex2i(curVertex->x, curVertex->y);
+         }
+        // glEnd();
+      }
+   //for(int )
+      glEnd();
 
    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
    for (int j = 0; j < CurPolygonGroup->Polygons.size(); j++)
@@ -435,7 +451,7 @@ void main(int argc, char* argv[])
 
    PolygonGroups.resize(1);
 
-   FiniteElementMesh mesh("vertex.txt", "elements.txt");
+   FiniteElementMesh mesh("Vertex_.txt", "Elements_.txt");
 
    PolygonGroups[0] = mesh.MeshToPolygonGroup();
    
